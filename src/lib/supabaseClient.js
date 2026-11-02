@@ -215,24 +215,65 @@ export async function fetchAllProductsAdmin() {
 
 export async function saveProduct(product) {
   const isNew = !product.id;
+
+  // Normalizare galerie imagini: array de string-uri URL valide
+  let galleryArray = [];
+  if (Array.isArray(product.gallery)) {
+    galleryArray = product.gallery.filter(Boolean);
+  } else if (typeof product.gallery === 'string') {
+    try {
+      const parsed = JSON.parse(product.gallery);
+      if (Array.isArray(parsed)) galleryArray = parsed.filter(Boolean);
+    } catch {
+      galleryArray = product.gallery.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+
+  // Dacă image_url este specificată și nu se află în galerie, o adăugăm ca primă imagine
+  if (product.image_url && !galleryArray.includes(product.image_url)) {
+    galleryArray.unshift(product.image_url);
+  }
+
+  const primaryImage = product.image_url || galleryArray[0] || "";
+
   const payload = {
     name: product.name,
     description: product.description || "",
     price: Number(product.price) || 0,
     category: product.category || "",
-    image_url: product.image_url || "",
+    image_url: primaryImage,
+    gallery: galleryArray,
     badge: product.badge || null,
     active: product.active !== undefined ? product.active : true,
     fields: product.fields || []
   };
-  if (isNew) {
-    const { data, error } = await supabase.from("products").insert([payload]).select().single();
-    if (error) throw error;
-    return data;
-  } else {
-    const { data, error } = await supabase.from("products").update(payload).eq("id", product.id).select().single();
-    if (error) throw error;
-    return data;
+
+  try {
+    if (isNew) {
+      const { data, error } = await supabase.from("products").insert([payload]).select().single();
+      if (error) throw error;
+      return data;
+    } else {
+      const { data, error } = await supabase.from("products").update(payload).eq("id", product.id).select().single();
+      if (error) throw error;
+      return data;
+    }
+  } catch (err) {
+    // Dacă tabela din Supabase nu are încă adăugată coloana "gallery" (eroare Postgres 42703 / column does not exist)
+    if (err.message?.includes('gallery') || err.code === '42703') {
+      console.warn('[saveProduct] Coloana "gallery" nu există încă în tabela products din Supabase. Salvăm fără ea:', err.message);
+      const { gallery: _omitGallery, ...fallbackPayload } = payload;
+      if (isNew) {
+        const { data, error } = await supabase.from("products").insert([fallbackPayload]).select().single();
+        if (error) throw error;
+        return { ...data, _needsGalleryColumn: true };
+      } else {
+        const { data, error } = await supabase.from("products").update(fallbackPayload).eq("id", product.id).select().single();
+        if (error) throw error;
+        return { ...data, _needsGalleryColumn: true };
+      }
+    }
+    throw err;
   }
 }
 

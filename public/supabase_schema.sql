@@ -21,11 +21,15 @@ CREATE TABLE IF NOT EXISTS public.products (
     price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
     category TEXT DEFAULT '',
     image_url TEXT,
+    gallery JSONB NOT NULL DEFAULT '[]'::jsonb,
     badge TEXT,
     active BOOLEAN NOT NULL DEFAULT true,
     fields JSONB NOT NULL DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Asigură existența coloanei gallery dacă tabela a fost deja creată anterior
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS gallery JSONB DEFAULT '[]'::jsonb;
 
 -- Index pentru performanță la filtrare după produse active și categorie
 CREATE INDEX IF NOT EXISTS idx_products_active_category ON public.products(active, category);

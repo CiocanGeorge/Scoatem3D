@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   Plus, Edit2, Trash2, Power, UploadCloud, Layers, X, 
-  Check, AlertCircle, Sparkles, HelpCircle, FolderTree 
+  Check, AlertCircle, Sparkles, HelpCircle, FolderTree,
+  Image as ImageIcon, Star
 } from 'lucide-react';
 import { 
   saveProduct, 
@@ -21,6 +22,9 @@ export default function AdminProductsTab({
   const [editingProduct, setEditingProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploadingImg, setIsUploadingImg] = useState(false);
+  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
+  const [galleryUrlInput, setGalleryUrlInput] = useState('');
+  const galleryFileInputRef = useRef(null);
 
   // Quick add categorie din modal
   const [isAddingQuickCat, setIsAddingQuickCat] = useState(false);
@@ -45,6 +49,7 @@ export default function AdminProductsTab({
     price: '',
     category: '',
     image_url: '/images/products/lampa-litofanie.jpg',
+    gallery: [],
     badge: '',
     active: true,
     fields: []
@@ -59,10 +64,12 @@ export default function AdminProductsTab({
       price: '',
       category: categoryOptions[0] || '',
       image_url: '/images/products/lampa-litofanie.jpg',
+      gallery: [],
       badge: 'Nou',
       active: true,
       fields: []
     });
+    setGalleryUrlInput('');
     setIsModalOpen(true);
   };
 
@@ -76,10 +83,12 @@ export default function AdminProductsTab({
       price: prod.price || '',
       category: prod.category || '',
       image_url: prod.image_url || '/images/products/lampa-litofanie.jpg',
+      gallery: Array.isArray(prod.gallery) ? prod.gallery : [],
       badge: prod.badge || '',
       active: prod.active !== undefined ? prod.active : true,
       fields: JSON.parse(JSON.stringify(prod.fields || []))
     });
+    setGalleryUrlInput('');
     setIsModalOpen(true);
   };
 
@@ -98,7 +107,7 @@ export default function AdminProductsTab({
     }
   };
 
-  // Upload imagine produs
+  // Upload imagine produs (principală)
   const handleImageFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -115,6 +124,55 @@ export default function AdminProductsTab({
     } finally {
       setIsUploadingImg(false);
     }
+  };
+
+  // Upload imagine în galerie
+  const handleGalleryFileChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    setIsUploadingGallery(true);
+    try {
+      const uploadedUrls = [];
+      for (const file of files) {
+        const url = await uploadProductImage(file);
+        if (url) uploadedUrls.push(url);
+      }
+      if (uploadedUrls.length) {
+        setProductForm(prev => ({
+          ...prev,
+          gallery: [...prev.gallery, ...uploadedUrls]
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Eroare la încărcarea imaginilor în galerie.');
+    } finally {
+      setIsUploadingGallery(false);
+      // reset input so same files can be picked again
+      if (galleryFileInputRef.current) galleryFileInputRef.current.value = '';
+    }
+  };
+
+  // Adăugare imagine în galerie prin URL
+  const handleAddGalleryUrl = () => {
+    const url = galleryUrlInput.trim();
+    if (!url) return;
+    setProductForm(prev => ({ ...prev, gallery: [...prev.gallery, url] }));
+    setGalleryUrlInput('');
+  };
+
+  // Ștergere imagine din galerie
+  const handleRemoveGalleryImage = (idx) => {
+    setProductForm(prev => ({
+      ...prev,
+      gallery: prev.gallery.filter((_, i) => i !== idx)
+    }));
+  };
+
+  // Setare imagine din galerie ca imagine principală
+  const handleSetGalleryAsPrimary = (url) => {
+    setProductForm(prev => ({ ...prev, image_url: url }));
   };
 
   // Salvare rapidă a unei categorii noi din formularul de produs
@@ -192,8 +250,17 @@ export default function AdminProductsTab({
       return;
     }
 
+    // Construim gallery final: dacă image_url nu e deja în galerie, îl adăugăm la început
+    const galleryFinal = [...productForm.gallery];
+    if (productForm.image_url && !galleryFinal.includes(productForm.image_url)) {
+      galleryFinal.unshift(productForm.image_url);
+    }
+
     try {
-      await saveProduct(productForm);
+      const result = await saveProduct({ ...productForm, gallery: galleryFinal });
+      if (result?._needsGalleryColumn) {
+        alert('Produsul a fost salvat, dar galeria de imagini nu a putut fi stocată.\nRulează în Supabase SQL Editor:\nALTER TABLE public.products ADD COLUMN IF NOT EXISTS gallery JSONB DEFAULT \'[]\'::jsonb;');
+      }
       setIsModalOpen(false);
       onRefresh();
     } catch (err) {
@@ -463,14 +530,14 @@ export default function AdminProductsTab({
                 />
               </div>
 
-              {/* Imagine Produs */}
-              <div style={{ marginBottom: '24px' }}>
-                <label className="form-label-custom">Imagine Principală Produs</label>
+              {/* Imagine Principală Produs */}
+              <div style={{ marginBottom: '20px' }}>
+                <label className="form-label-custom">Imagine Principală (Cover)</label>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                   <img
                     src={productForm.image_url}
                     alt="Preview"
-                    style={{ width: '80px', height: '60px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--border-light)' }}
+                    style={{ width: '80px', height: '60px', borderRadius: '8px', objectFit: 'cover', border: '2px solid var(--primary)', flexShrink: 0 }}
                   />
                   <div style={{ flexGrow: 1 }}>
                     <input
@@ -478,16 +545,155 @@ export default function AdminProductsTab({
                       className="custom-input"
                       value={productForm.image_url}
                       onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })}
-                      placeholder="URL imagine sau încarcă fișier..."
+                      placeholder="URL imagine principală..."
                       style={{ marginBottom: '8px' }}
                     />
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', cursor: 'pointer', color: 'var(--primary)', fontWeight: '600' }}>
                       <UploadCloud size={16} />
-                      <span>{isUploadingImg ? 'Se încarcă...' : 'Încarcă altă poză de pe dispozitiv'}</span>
+                      <span>{isUploadingImg ? 'Se încarcă...' : 'Încarcă poză principală de pe dispozitiv'}</span>
                       <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageFileChange} />
                     </label>
                   </div>
                 </div>
+              </div>
+
+              {/* Galerie de imagini */}
+              <div style={{ marginBottom: '24px', background: 'var(--bg-warm-tint)', borderRadius: 'var(--radius-md)', padding: '16px', border: '1px solid var(--border-light)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <label className="form-label-custom" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ImageIcon size={16} color="var(--primary)" />
+                    Galerie de imagini
+                    <span style={{ fontSize: '0.78rem', fontWeight: '500', color: 'var(--text-secondary)', marginLeft: '4px' }}>
+                      ({productForm.gallery.length} {productForm.gallery.length === 1 ? 'imagine' : 'imagini'})
+                    </span>
+                  </label>
+                  <label
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                      fontSize: '0.82rem', cursor: 'pointer',
+                      color: 'var(--primary)', fontWeight: '600',
+                      background: 'var(--bg-card)', border: '1px solid var(--border-light)',
+                      borderRadius: '8px', padding: '6px 12px'
+                    }}
+                    title="Poți selecta mai multe poze deodată"
+                  >
+                    <UploadCloud size={15} />
+                    <span>{isUploadingGallery ? 'Se încarcă...' : 'Adaugă poze'}</span>
+                    <input
+                      ref={galleryFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      style={{ display: 'none' }}
+                      onChange={handleGalleryFileChange}
+                      disabled={isUploadingGallery}
+                    />
+                  </label>
+                </div>
+
+                {/* Grid imagini galerie */}
+                {productForm.gallery.length > 0 ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+                    {productForm.gallery.map((imgUrl, idx) => {
+                      const isPrimary = imgUrl === productForm.image_url;
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            position: 'relative',
+                            width: '80px',
+                            height: '80px',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            border: isPrimary ? '2px solid var(--primary)' : '2px solid var(--border-light)',
+                            flexShrink: 0
+                          }}
+                        >
+                          <img
+                            src={imgUrl}
+                            alt={`Galerie ${idx + 1}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                          />
+                          {/* Badge "Principal" */}
+                          {isPrimary && (
+                            <div style={{
+                              position: 'absolute', bottom: 0, left: 0, right: 0,
+                              background: 'var(--primary)', color: '#fff',
+                              fontSize: '0.6rem', fontWeight: '700',
+                              textAlign: 'center', padding: '2px 0',
+                              letterSpacing: '0.5px'
+                            }}>
+                              COVER
+                            </div>
+                          )}
+                          {/* Buton ștergere */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGalleryImage(idx)}
+                            style={{
+                              position: 'absolute', top: '3px', right: '3px',
+                              background: 'rgba(0,0,0,0.65)', color: '#fff',
+                              border: 'none', borderRadius: '50%',
+                              width: '20px', height: '20px',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              cursor: 'pointer', padding: 0
+                            }}
+                            title="Șterge din galerie"
+                          >
+                            <X size={11} />
+                          </button>
+                          {/* Buton setare ca principală */}
+                          {!isPrimary && (
+                            <button
+                              type="button"
+                              onClick={() => handleSetGalleryAsPrimary(imgUrl)}
+                              style={{
+                                position: 'absolute', top: '3px', left: '3px',
+                                background: 'rgba(0,0,0,0.55)', color: '#fff',
+                                border: 'none', borderRadius: '50%',
+                                width: '20px', height: '20px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer', padding: 0
+                              }}
+                              title="Setează ca imagine principală (cover)"
+                            >
+                              <Star size={10} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.83rem', color: 'var(--text-muted)', marginBottom: '12px', fontStyle: 'italic' }}>
+                    Nicio imagine în galerie. Adaugă poze de mai sus sau prin URL.
+                  </div>
+                )}
+
+                {/* Adăugare prin URL */}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    className="custom-input"
+                    placeholder="URL imagine (https://...)..."
+                    value={galleryUrlInput}
+                    onChange={(e) => setGalleryUrlInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddGalleryUrl(); } }}
+                    style={{ flexGrow: 1 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleAddGalleryUrl}
+                    disabled={!galleryUrlInput.trim()}
+                    style={{ padding: '8px 14px', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
+                  >
+                    <Plus size={14} /> Adaugă URL
+                  </button>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>
+                  Apasă ⭐ pe o imagine ca să o setezi drept cover. Apasă ✕ ca s-o ștergi din galerie.
+                </p>
               </div>
 
               <hr style={{ border: 'none', borderTop: '1px solid var(--border-light)', margin: '24px 0' }} />
