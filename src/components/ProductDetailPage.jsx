@@ -379,8 +379,12 @@ export default function ProductDetailPage({
 
           <div className="detail-breadcrumbs">
             <span onClick={onBack} className="crumb-link">Magazin</span>
-            <span className="crumb-sep">/</span>
-            <span className="crumb-category">{product.category}</span>
+            {product.category && (
+              <>
+                <span className="crumb-sep">/</span>
+                <span className="crumb-category">{product.category}</span>
+              </>
+            )}
             <span className="crumb-sep">/</span>
             <span className="crumb-current">{product.name}</span>
           </div>
@@ -501,7 +505,9 @@ export default function ProductDetailPage({
           {/* COLOANA DREAPTA: COMANDĂ & PERSONALIZARE LIVE */}
           <div className="detail-info-col">
             <div className="detail-header-meta">
-              <span className="badge badge-terracotta">{product.category}</span>
+              {product.category && (
+                <span className="badge badge-terracotta">{product.category}</span>
+              )}
               
               <div className="detail-rating-pill" onClick={scrollToReviews} title="Vezi recenziile clienților">
                 <div className="rating-stars-inline">
@@ -1370,7 +1376,9 @@ export default function ProductDetailPage({
                     />
                   </div>
                   <div className="product-body">
-                    <span className="product-category-label">{relProd.category}</span>
+                    {relProd.category && (
+                      <span className="product-category-label">{relProd.category}</span>
+                    )}
                     <h4 className="product-name">{relProd.name}</h4>
                     <p className="product-description-snippet">{relProd.description}</p>
                     <div className="product-card-footer">

@@ -219,7 +219,7 @@ export async function saveProduct(product) {
     name: product.name,
     description: product.description || "",
     price: Number(product.price) || 0,
-    category: product.category || "Diverse",
+    category: product.category || "",
     image_url: product.image_url || "",
     badge: product.badge || null,
     active: product.active !== undefined ? product.active : true,
@@ -250,13 +250,7 @@ export async function deleteProduct(productId) {
 // CATEGORII
 // ==============================================================================
 
-export const DEFAULT_CATEGORIES = [
-  { id: "cat-1", name: "Lămpi Litofanie", display_order: 1 },
-  { id: "cat-2", name: "Brelocuri", display_order: 2 },
-  { id: "cat-3", name: "Rame & Cadouri", display_order: 3 },
-  { id: "cat-4", name: "Bucătărie & Evenimente", display_order: 4 },
-  { id: "cat-5", name: "Diverse", display_order: 5 }
-];
+export const DEFAULT_CATEGORIES = [];
 
 export async function fetchCategories() {
   try {
@@ -275,17 +269,17 @@ export async function fetchCategories() {
           return names.map((name, i) => ({ id: `cat-prod-${i}`, name, display_order: i + 1 }));
         }
       } catch {}
-      return DEFAULT_CATEGORIES;
+      return [];
     }
 
     if (!data || data.length === 0) {
-      return DEFAULT_CATEGORIES;
+      return [];
     }
 
     return data;
   } catch (err) {
     console.warn("[Categories] Exceptie la citire categorii:", err);
-    return DEFAULT_CATEGORIES;
+    return [];
   }
 }
 
@@ -630,7 +624,7 @@ export async function fetchVisitStats() {
 /**
  * Returnează ultimele N vizite (detaliate) pentru tabelul din admin.
  */
-export async function fetchRecentVisits(limit = 100) {
+export async function fetchRecentVisits(limit = 1000) {
   if (!isSupabaseConfigured()) return [];
   const { data, error } = await supabase
     .from('page_visits')

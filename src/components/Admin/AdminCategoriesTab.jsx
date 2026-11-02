@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { 
   FolderTree, Plus, Edit2, Trash2, Check, Copy, AlertCircle, 
-  RefreshCw, Package, ArrowUpDown, X, Sparkles 
+  RefreshCw, Package, X 
 } from 'lucide-react';
 import { saveCategory, deleteCategory } from '../../lib/supabaseClient';
 
-export default function AdminCategoriesTab({ 
+export function AdminCategoriesTab({ 
   categories = [], 
   products = [], 
   onRefresh, 
@@ -31,10 +31,7 @@ ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public can view categories" ON public.categories FOR SELECT USING (true);
 CREATE POLICY "Admin can insert categories" ON public.categories FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Admin can update categories" ON public.categories FOR UPDATE USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin can delete categories" ON public.categories FOR DELETE USING (auth.role() = 'authenticated');
-INSERT INTO public.categories (name, display_order)
-VALUES ('Lămpi Litofanie', 1), ('Brelocuri', 2), ('Rame & Cadouri', 3), ('Bucătărie & Evenimente', 4), ('Diverse', 5)
-ON CONFLICT (name) DO NOTHING;`;
+CREATE POLICY "Admin can delete categories" ON public.categories FOR DELETE USING (auth.role() = 'authenticated');`;
 
   const handleCopySql = () => {
     navigator.clipboard.writeText(sqlCreateCmd);
@@ -359,3 +356,5 @@ ON CONFLICT (name) DO NOTHING;`;
     </div>
   );
 }
+
+export default AdminCategoriesTab;

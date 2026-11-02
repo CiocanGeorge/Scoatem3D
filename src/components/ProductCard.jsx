@@ -73,7 +73,9 @@ export default function ProductCard({
 
       <div className="product-body">
         <div className="product-card-top-meta">
-          <span className="product-category-label">{product.category}</span>
+          {product.category && (
+            <span className="product-category-label">{product.category}</span>
+          )}
           {product.rating ? (
             <div className="card-rating-tiny">
               <Star size={13} fill="#D48B28" color="#D48B28" />

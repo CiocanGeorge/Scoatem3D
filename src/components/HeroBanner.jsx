@@ -124,33 +124,35 @@ export default function HeroBanner({
         )}
 
         {/* Category Filter Pills - Cu Pictograme & Contoare */}
-        <div className="categories-filter-wrapper">
-          <div className="categories-filter-bar">
-            {categories.map((cat) => {
-              const Icon = getCategoryIcon(cat);
-              const count = cat === 'Toate' ? totalProducts : (categoryCounts[cat] || 0);
-              const isActive = selectedCategory === cat;
+        {categories && categories.length > 0 && (
+          <div className="categories-filter-wrapper">
+            <div className="categories-filter-bar">
+              {categories.map((cat) => {
+                const Icon = getCategoryIcon(cat);
+                const count = cat === 'Toate' ? totalProducts : (categoryCounts[cat] || 0);
+                const isActive = selectedCategory === cat;
 
-              return (
-                <button
-                  key={cat}
-                  className={`cat-pill-btn ${isActive ? 'active' : ''}`}
-                  onClick={() => onSelectCategory(cat)}
-                  type="button"
-                  title={`Filtrează după: ${cat}`}
-                >
-                  <span className="cat-pill-icon">
-                    <Icon size={16} />
-                  </span>
-                  <span className="cat-pill-title">{cat}</span>
-                  {count > 0 && (
-                    <span className="cat-pill-count">{count}</span>
-                  )}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={cat}
+                    className={`cat-pill-btn ${isActive ? 'active' : ''}`}
+                    onClick={() => onSelectCategory(cat)}
+                    type="button"
+                    title={`Filtrează după: ${cat}`}
+                  >
+                    <span className="cat-pill-icon">
+                      <Icon size={16} />
+                    </span>
+                    <span className="cat-pill-title">{cat}</span>
+                    {count > 0 && (
+                      <span className="cat-pill-count">{count}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
     </section>

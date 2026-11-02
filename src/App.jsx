@@ -282,8 +282,16 @@ export default function App() {
         catNames.push(p.category);
       }
     });
-    return ['Toate', ...(catNames.length > 0 ? catNames : ['Lămpi Litofanie', 'Brelocuri', 'Diverse'])];
+    if (catNames.length === 0) return [];
+    return ['Toate', ...catNames];
   }, [dbCategories, products]);
+
+  // Resetare categorie selectata daca categoria curenta a fost stearsa
+  useEffect(() => {
+    if (selectedCategory !== 'Toate' && !categories.includes(selectedCategory)) {
+      setSelectedCategory('Toate');
+    }
+  }, [categories, selectedCategory]);
 
   // Contor de produse per categorie
   const categoryCounts = React.useMemo(() => {

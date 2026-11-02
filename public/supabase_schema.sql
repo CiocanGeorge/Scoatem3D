@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.products (
     name TEXT NOT NULL,
     description TEXT,
     price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
-    category TEXT NOT NULL DEFAULT 'Diverse',
+    category TEXT DEFAULT '',
     image_url TEXT,
     badge TEXT,
     active BOOLEAN NOT NULL DEFAULT true,
@@ -156,15 +156,9 @@ CREATE POLICY "Admin can delete categories"
     FOR DELETE 
     USING (auth.role() = 'authenticated');
 
--- Inserare categorii inițiale dacă tabela e goală
-INSERT INTO public.categories (name, display_order)
-VALUES 
-    ('Lămpi Litofanie', 1),
-    ('Brelocuri', 2),
-    ('Rame & Cadouri', 3),
-    ('Bucătărie & Evenimente', 4),
-    ('Diverse', 5)
-ON CONFLICT (name) DO NOTHING;
+-- (Opțional) Categorii inițiale - poți adăuga categorii direct din Panoul de Administrare:
+-- INSERT INTO public.categories (name, display_order)
+-- VALUES ('Lămpi Litofanie', 1), ('Brelocuri', 2) ON CONFLICT (name) DO NOTHING;
 
 -- ------------------------------------------------------------------------------
 -- Reguli RLS pentru ORDERS:

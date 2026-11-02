@@ -35,7 +35,6 @@ export default function AdminProductsTab({
         list.push(p.category);
       }
     });
-    if (list.length === 0) return ['Lămpi Litofanie', 'Brelocuri', 'Diverse'];
     return list;
   }, [categories, products]);
 
@@ -44,7 +43,7 @@ export default function AdminProductsTab({
     name: '',
     description: '',
     price: '',
-    category: 'Lămpi Litofanie',
+    category: '',
     image_url: '/images/products/lampa-litofanie.jpg',
     badge: '',
     active: true,
@@ -58,7 +57,7 @@ export default function AdminProductsTab({
       name: '',
       description: '',
       price: '',
-      category: 'Lămpi Litofanie',
+      category: categoryOptions[0] || '',
       image_url: '/images/products/lampa-litofanie.jpg',
       badge: 'Nou',
       active: true,
@@ -75,7 +74,7 @@ export default function AdminProductsTab({
       name: prod.name || '',
       description: prod.description || '',
       price: prod.price || '',
-      category: prod.category || 'Diverse',
+      category: prod.category || '',
       image_url: prod.image_url || '/images/products/lampa-litofanie.jpg',
       badge: prod.badge || '',
       active: prod.active !== undefined ? prod.active : true,
@@ -264,9 +263,11 @@ export default function AdminProductsTab({
             </div>
 
             <div style={{ padding: '16px', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-              <div style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: '700', textTransform: 'uppercase' }}>
-                {prod.category}
-              </div>
+              {prod.category && (
+                <div style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: '700', textTransform: 'uppercase' }}>
+                  {prod.category}
+                </div>
+              )}
               <h4 style={{ fontSize: '1.05rem', margin: '4px 0 8px', color: 'var(--text-main)' }}>
                 {prod.name}
               </h4>
@@ -428,9 +429,10 @@ export default function AdminProductsTab({
                   ) : (
                     <select
                       className="custom-input"
-                      value={productForm.category}
+                      value={productForm.category || ''}
                       onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
                     >
+                      <option value="">{categoryOptions.length === 0 ? '-- Fără categorie --' : '-- Fără categorie / Selectează --'}</option>
                       {categoryOptions.map((cat) => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}

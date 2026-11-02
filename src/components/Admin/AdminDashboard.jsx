@@ -11,7 +11,7 @@ import {
 import AdminOrdersTab from './AdminOrdersTab';
 import AdminPrintQueueTab from './AdminPrintQueueTab';
 import AdminProductsTab from './AdminProductsTab';
-import AdminCategoriesTab from './AdminCategoriesTab';
+import AdminCategoriesTab from './AdminCategoriesTab.jsx';
 import AdminSupabaseGuideTab from './AdminSupabaseGuideTab';
 import AdminAnalyticsTab from './AdminAnalyticsTab';
 
