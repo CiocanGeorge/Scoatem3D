@@ -699,9 +699,9 @@ export default function App() {
                   <div style={{ background: 'var(--primary-light)', color: 'var(--primary)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', marginBottom: '16px' }}>
                     1
                   </div>
-                  <h4 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>Configurezi produsul</h4>
-                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                    Alegi produsul, încarci fotografia la rezoluție originală sau introduci textul dorit și nuanța de filament.
+                  <h4 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>Comanzi produsul</h4>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.55' }}>
+                    Alegi produsul dorit din magazin (piesă standard sau personalizată) și plasezi comanda simplu și rapid în doar câteva momente.
                   </p>
                 </div>
 
@@ -709,9 +709,9 @@ export default function App() {
                   <div style={{ background: 'var(--accent-gold-light)', color: 'var(--accent-gold)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', marginBottom: '16px' }}>
                     2
                   </div>
-                  <h4 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>Modelare 3D & Slicing</h4>
-                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                    Transformăm poza ta într-o hartă de grosimi micrometrice (litofanie) și pregătim straturile de imprimare.
+                  <h4 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>Noi pregătim fișierul</h4>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.55' }}>
+                    Optimizăm geometria 3D și parametrii tehnici de printare. Între timp, <strong>poți urmări oricând statusul comenzii</strong> tale în timp real pe site!
                   </p>
                 </div>
 
@@ -719,9 +719,9 @@ export default function App() {
                   <div style={{ background: 'var(--accent-sage-light)', color: 'var(--accent-sage)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', marginBottom: '16px' }}>
                     3
                   </div>
-                  <h4 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>Imprimare Strat cu Strat</h4>
-                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                    Folosim filamente sigure, ecologice (PLA organic pe bază de amidon de porumb), imprimate la 0.12mm.
+                  <h4 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>Printăm comanda</h4>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.55' }}>
+                    Piesa ta prinde viață strat cu strat la imprimantele noastre 3D de înaltă precizie.
                   </p>
                 </div>
 
@@ -730,8 +730,8 @@ export default function App() {
                     4
                   </div>
                   <h4 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>Ambalare & Expediere</h4>
-                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                    Fiecare piesă este verificată cu atenție, ambalată cu grijă pentru protecție și expediată direct la ușa ta.
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.55' }}>
+                    Fiecare piesă este verificată cu atenție, ambalată cu grijă în materiale protectoare și expediată rapid direct la ușa ta.
                   </p>
                 </div>
               </div>

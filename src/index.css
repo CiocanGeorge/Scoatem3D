@@ -1999,8 +1999,39 @@ button:disabled {
 .detail-short-description {
   font-size: 0.98rem;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.65;
   margin-bottom: 24px;
+}
+
+/* Reguli clare de afișare pentru descrieri formatate stil Word (bold, liste numerotate, buline) */
+.formatted-description strong,
+.detail-short-description strong,
+.desc-paragraphs strong {
+  font-weight: 700 !important;
+  color: var(--text-main) !important;
+}
+
+.formatted-description ol,
+.detail-short-description ol,
+.desc-paragraphs ol {
+  list-style: decimal outside !important;
+  padding-left: 28px !important;
+  margin: 12px 0 !important;
+}
+
+.formatted-description ul,
+.detail-short-description ul,
+.desc-paragraphs ul {
+  list-style: disc outside !important;
+  padding-left: 26px !important;
+  margin: 12px 0 !important;
+}
+
+.formatted-description li,
+.detail-short-description li,
+.desc-paragraphs li {
+  margin-bottom: 6px !important;
+  line-height: 1.6 !important;
 }
 
 /* Formular de Personalizare Integrat */

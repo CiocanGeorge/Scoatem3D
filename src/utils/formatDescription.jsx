@@ -6,43 +6,37 @@ import React from 'react';
 function parseInlineFormatting(text) {
   if (!text || typeof text !== 'string') return text;
 
-  const tokens = [];
-  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*|<b>.*?<\/b>|<strong>.*?<\/strong>|<i>.*?<\/i>|<em>.*?<\/em>)/g;
+  // Împărțire sigură după markdown bold (**...**), cursiv (*...*) sau taguri HTML
+  const parts = text.split(/(\*\*[\s\S]+?\*\*|\*[^*\n]+?\*|<b>[\s\S]+?<\/b>|<strong>[\s\S]+?<\/strong>|<i>[\s\S]+?<\/i>|<em>[\s\S]+?<\/em>)/g);
 
-  let lastIdx = 0;
-  let match;
-  let keyCounter = 0;
+  if (parts.length === 1) return text;
 
-  while ((match = regex.exec(text)) !== null) {
-    const matchedText = match[0];
-    const matchStart = match.index;
-
-    if (matchStart > lastIdx) {
-      tokens.push(text.substring(lastIdx, matchStart));
+  return parts.map((part, idx) => {
+    if (!part) return null;
+    if (part.startsWith('**') && part.endsWith('**') && part.length >= 4) {
+      return (
+        <strong key={idx} style={{ fontWeight: '700', color: 'var(--text-main)' }}>
+          {part.slice(2, -2)}
+        </strong>
+      );
     }
-
-    if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
-      tokens.push(<strong key={keyCounter++}>{matchedText.slice(2, -2)}</strong>);
-    } else if (matchedText.startsWith('*') && matchedText.endsWith('*')) {
-      tokens.push(<em key={keyCounter++}>{matchedText.slice(1, -1)}</em>);
-    } else if (matchedText.startsWith('<b>') || matchedText.startsWith('<strong>')) {
-      const inner = matchedText.replace(/<\/?(b|strong)>/g, '');
-      tokens.push(<strong key={keyCounter++}>{inner}</strong>);
-    } else if (matchedText.startsWith('<i>') || matchedText.startsWith('<em>')) {
-      const inner = matchedText.replace(/<\/?(i|em)>/g, '');
-      tokens.push(<em key={keyCounter++}>{inner}</em>);
-    } else {
-      tokens.push(matchedText);
+    if (part.startsWith('*') && part.endsWith('*') && part.length >= 2) {
+      return <em key={idx}>{part.slice(1, -1)}</em>;
     }
-
-    lastIdx = regex.lastIndex;
-  }
-
-  if (lastIdx < text.length) {
-    tokens.push(text.substring(lastIdx));
-  }
-
-  return tokens.length > 0 ? tokens : text;
+    if (part.startsWith('<b>') || part.startsWith('<strong>')) {
+      const clean = part.replace(/<\/?(b|strong)>/gi, '');
+      return (
+        <strong key={idx} style={{ fontWeight: '700', color: 'var(--text-main)' }}>
+          {clean}
+        </strong>
+      );
+    }
+    if (part.startsWith('<i>') || part.startsWith('<em>')) {
+      const clean = part.replace(/<\/?(i|em)>/gi, '');
+      return <em key={idx}>{clean}</em>;
+    }
+    return part;
+  });
 }
 
 /**
@@ -70,8 +64,8 @@ export function FormattedDescription({ text, className = '' }) {
       return;
     }
 
-    // Listă numerotată: "1. ", "2) ", etc.
-    const numberedMatch = trimmed.match(/^(\d+)[\.\)]\s+(.+)$/);
+    // Listă numerotată: "1. ", "1) ", "1 - ", etc.
+    const numberedMatch = trimmed.match(/^(\d+)[\.\)\-]\s*(.+)$/);
     if (numberedMatch) {
       if (!currentList || currentList.type !== 'ol') {
         flushList();
@@ -82,7 +76,7 @@ export function FormattedDescription({ text, className = '' }) {
     }
 
     // Listă cu buline: "• ", "- ", "* "
-    const bulletMatch = trimmed.match(/^[•\-\*]\s+(.+)$/);
+    const bulletMatch = trimmed.match(/^[•\-\*]\s*(.+)$/);
     if (bulletMatch) {
       if (!currentList || currentList.type !== 'ul') {
         flushList();
@@ -103,14 +97,25 @@ export function FormattedDescription({ text, className = '' }) {
   flushList();
 
   return (
-    <div className={`formatted-description ${className}`}>
+    <div className={`formatted-description ${className}`} style={{ lineHeight: '1.65' }}>
       {blocks.map((block, idx) => {
         if (block.type === 'ol') {
           return (
-            <ol key={idx} style={{ paddingLeft: '24px', margin: '10px 0', lineHeight: '1.7', listStyleType: 'decimal' }}>
+            <ol 
+              key={idx} 
+              style={{ 
+                paddingLeft: '28px', 
+                margin: '12px 0', 
+                lineHeight: '1.65', 
+                listStyle: 'decimal outside',
+                color: 'var(--text-main)'
+              }}
+            >
               {block.items.map((item, itemIdx) => (
-                <li key={itemIdx} style={{ marginBottom: '4px' }}>
-                  {parseInlineFormatting(item)}
+                <li key={itemIdx} style={{ marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>
+                    {parseInlineFormatting(item)}
+                  </span>
                 </li>
               ))}
             </ol>
@@ -118,17 +123,28 @@ export function FormattedDescription({ text, className = '' }) {
         }
         if (block.type === 'ul') {
           return (
-            <ul key={idx} style={{ paddingLeft: '22px', margin: '10px 0', lineHeight: '1.7', listStyleType: 'disc' }}>
+            <ul 
+              key={idx} 
+              style={{ 
+                paddingLeft: '26px', 
+                margin: '12px 0', 
+                lineHeight: '1.65', 
+                listStyle: 'disc outside',
+                color: 'var(--text-main)'
+              }}
+            >
               {block.items.map((item, itemIdx) => (
-                <li key={itemIdx} style={{ marginBottom: '4px' }}>
-                  {parseInlineFormatting(item)}
+                <li key={itemIdx} style={{ marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>
+                    {parseInlineFormatting(item)}
+                  </span>
                 </li>
               ))}
             </ul>
           );
         }
         return (
-          <p key={idx} style={{ margin: '8px 0', lineHeight: '1.65' }}>
+          <p key={idx} style={{ margin: '8px 0', lineHeight: '1.65', color: 'var(--text-secondary)' }}>
             {parseInlineFormatting(block.text)}
           </p>
         );
@@ -150,4 +166,3 @@ export function stripFormatting(text) {
 }
 
 export default FormattedDescription;
-
