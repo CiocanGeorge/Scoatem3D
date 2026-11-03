@@ -4,18 +4,18 @@ import confetti from 'canvas-confetti';
 import { placeOrder, supabase, updateCustomerProfile } from '../lib/supabaseClient';
 
 const ROMANIAN_COUNTIES = [
-  'Alba', 'Arad', 'Argeș', 'Bacău', 'Bihor', 'Bistrița-Năsăud', 'Botoșani', 'Brașov', 
-  'Brăila', 'București', 'Buzău', 'Caraș-Severin', 'Călărași', 'Cluj', 'Constanța', 
-  'Covasna', 'Dâmbovița', 'Dolj', 'Galați', 'Giurgiu', 'Gorj', 'Harghita', 'Hunedoara', 
-  'Ialomița', 'Iași', 'Ilfov', 'Maramureș', 'Mehedinți', 'Mureș', 'Neamț', 'Olt', 
-  'Prahova', 'Satu Mare', 'Sălaj', 'Sibiu', 'Suceava', 'Teleorman', 'Timiș', 'Tulcea', 
+  'Alba', 'Arad', 'Argeș', 'Bacău', 'Bihor', 'Bistrița-Năsăud', 'Botoșani', 'Brașov',
+  'Brăila', 'București', 'Buzău', 'Caraș-Severin', 'Călărași', 'Cluj', 'Constanța',
+  'Covasna', 'Dâmbovița', 'Dolj', 'Galați', 'Giurgiu', 'Gorj', 'Harghita', 'Hunedoara',
+  'Ialomița', 'Iași', 'Ilfov', 'Maramureș', 'Mehedinți', 'Mureș', 'Neamț', 'Olt',
+  'Prahova', 'Satu Mare', 'Sălaj', 'Sibiu', 'Suceava', 'Teleorman', 'Timiș', 'Tulcea',
   'Vaslui', 'Vâlcea', 'Vrancea'
 ];
 
-export default function CheckoutModal({ 
-  isOpen, 
-  onClose, 
-  cartItems = [], 
+export default function CheckoutModal({
+  isOpen,
+  onClose,
+  cartItems = [],
   onOrderSuccess,
   currentUser = null
 }) {
@@ -46,7 +46,7 @@ export default function CheckoutModal({
       savedPhone = localStorage.getItem('atelier3d_customer_phone') || '';
       const raw = localStorage.getItem('atelier3d_customer_data');
       if (raw) savedCustomerData = JSON.parse(raw);
-    } catch (e) {}
+    } catch (e) { }
 
     let fn = '';
     let ln = '';
@@ -101,17 +101,17 @@ export default function CheckoutModal({
             }));
             try {
               localStorage.setItem('atelier3d_customer_phone', fetchedPhone);
-            } catch (e) {}
+            } catch (e) { }
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [currentUser, isOpen]);
 
   if (!isOpen) return null;
 
   const subtotal = cartItems.reduce((acc, item) => acc + (Number(item.price) * (item.quantity || 1)), 0);
-  const deliveryCost = subtotal >= 200 ? 0 : 19;
+  const deliveryCost = subtotal >= 200 ? 0 : 25;
   const total = subtotal + deliveryCost;
 
   const handleInputChange = (key, value) => {
@@ -119,7 +119,7 @@ export default function CheckoutModal({
     if (key === 'phone' && value.trim()) {
       try {
         localStorage.setItem('atelier3d_customer_phone', value.trim());
-      } catch (e) {}
+      } catch (e) { }
     }
     if (errors[key]) {
       setErrors(prev => {
@@ -132,7 +132,7 @@ export default function CheckoutModal({
 
   const validate = () => {
     const errs = {};
-    
+
     // 1. Date Personale (obligatorii)
     if (!formData.first_name.trim()) {
       errs.first_name = 'Prenumele este obligatoriu.';
@@ -216,7 +216,7 @@ export default function CheckoutModal({
             address: formData.address.trim(),
             postal_code: formData.postal_code.trim()
           }));
-        } catch (e) {}
+        } catch (e) { }
 
         // Actualizează profilul Supabase al clientului conectat cu câmpuri structurate
         if (currentUser) {
@@ -231,7 +231,7 @@ export default function CheckoutModal({
 
         setCompletedOrder(result.order);
         onOrderSuccess(); // golește coșul în App.jsx
-        
+
         // Trimite emailuri (confirmare client + notificare admin)
         try {
           supabase.functions.invoke('notify-new-order', {
@@ -249,7 +249,7 @@ export default function CheckoutModal({
         } catch (e) {
           // Nu bloca UI-ul dacă emailul eșuează
         }
-        
+
         // Efect festiv de confetti
         try {
           confetti({
@@ -273,9 +273,9 @@ export default function CheckoutModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div 
-        className="modal-card" 
-        onClick={(e) => e.stopPropagation()} 
+      <div
+        className="modal-card"
+        onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: completedOrder ? '600px' : '780px' }}
       >
         <button className="modal-close-btn" onClick={onClose} aria-label="Închide">
@@ -355,8 +355,8 @@ export default function CheckoutModal({
             </div>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button 
-                className="btn-primary" 
+              <button
+                className="btn-primary"
                 onClick={onClose}
                 style={{ padding: '12px 28px' }}
               >
@@ -668,9 +668,9 @@ export default function CheckoutModal({
                   />
                   <span>
                     Confirm că am citit și sunt de acord cu{' '}
-                    <a 
-                      href="#/termeni-si-conditii" 
-                      target="_blank" 
+                    <a
+                      href="#/termeni-si-conditii"
+                      target="_blank"
                       rel="noopener noreferrer"
                       style={{ color: 'var(--primary)', fontWeight: '700', textDecoration: 'underline' }}
                       onClick={(e) => e.stopPropagation()}
@@ -678,9 +678,9 @@ export default function CheckoutModal({
                       Termenii și Condițiile
                     </a>{' '}
                     și cu{' '}
-                    <a 
-                      href="#/politica-de-confidentialitate" 
-                      target="_blank" 
+                    <a
+                      href="#/politica-de-confidentialitate"
+                      target="_blank"
                       rel="noopener noreferrer"
                       style={{ color: 'var(--primary)', fontWeight: '700', textDecoration: 'underline' }}
                       onClick={(e) => e.stopPropagation()}
@@ -691,14 +691,14 @@ export default function CheckoutModal({
                   </span>
                 </label>
                 {errors.terms_accepted && (
-                  <div style={{ 
-                    color: '#DC2626', 
-                    fontSize: '0.82rem', 
-                    fontWeight: '600', 
-                    marginTop: '8px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '6px' 
+                  <div style={{
+                    color: '#DC2626',
+                    fontSize: '0.82rem',
+                    fontWeight: '600',
+                    marginTop: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}>
                     <AlertCircle size={15} style={{ flexShrink: 0 }} />
                     <span>{errors.terms_accepted}</span>
@@ -707,17 +707,17 @@ export default function CheckoutModal({
               </div>
 
               <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button 
-                  type="button" 
-                  className="btn-secondary" 
+                <button
+                  type="button"
+                  className="btn-secondary"
                   onClick={onClose}
                   disabled={isSubmitting}
                 >
                   Anulează
                 </button>
-                <button 
-                  type="submit" 
-                  className="btn-primary" 
+                <button
+                  type="submit"
+                  className="btn-primary"
                   disabled={isSubmitting}
                   style={{ minWidth: '200px' }}
                 >

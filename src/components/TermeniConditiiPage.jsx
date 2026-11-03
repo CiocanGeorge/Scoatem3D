@@ -23,7 +23,7 @@ export default function TermeniConditiiPage({ onBack, onNavigateLegal }) {
       <div className="container" style={{ maxWidth: '880px', padding: '36px 20px 80px' }}>
 
         {/* Meniu Navigare Rapidă, Tab-uri și Buton Print */}
-        <LegalHeaderNav 
+        <LegalHeaderNav
           currentPage="termeni"
           onBack={onBack}
           onNavigateLegal={onNavigateLegal}
@@ -32,14 +32,14 @@ export default function TermeniConditiiPage({ onBack, onNavigateLegal }) {
 
         {/* Titlu Pagină */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
-          <div style={{ 
-            width: '46px', 
-            height: '46px', 
-            borderRadius: '12px', 
-            background: 'var(--primary-light)', 
-            color: 'var(--primary)', 
-            display: 'flex', 
-            alignItems: 'center', 
+          <div style={{
+            width: '46px',
+            height: '46px',
+            borderRadius: '12px',
+            background: 'var(--primary-light)',
+            color: 'var(--primary)',
+            display: 'flex',
+            alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0
           }}>
@@ -56,12 +56,12 @@ export default function TermeniConditiiPage({ onBack, onNavigateLegal }) {
         </div>
 
         {/* Conținut Articol */}
-        <div style={{ 
-          background: 'var(--bg-card)', 
-          borderRadius: 'var(--radius-xl)', 
-          border: '1px solid var(--border-light)', 
-          padding: '40px 44px', 
-          lineHeight: '1.75', 
+        <div style={{
+          background: 'var(--bg-card)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--border-light)',
+          padding: '40px 44px',
+          lineHeight: '1.75',
           color: 'var(--text-main)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
         }}>
@@ -128,7 +128,7 @@ export default function TermeniConditiiPage({ onBack, onNavigateLegal }) {
               </div>
             </div>
             <p>
-              Pentru comenzi cu valoare sub 200 Lei, se aplică un cost fix de transport de 19 Lei, adăugat automat în totalul comenzii.
+              Pentru comenzi cu valoare sub 200 Lei, se aplică un cost fix de transport de 25 Lei, adăugat automat în totalul comenzii.
             </p>
           </Section>
 
@@ -142,12 +142,12 @@ export default function TermeniConditiiPage({ onBack, onNavigateLegal }) {
             <p>
               Conform <strong>OUG nr. 34/2014</strong>, consumatorul beneficiază de o perioadă de <strong>14 zile calendaristice</strong> pentru a se retrage dintr-un contract la distanță, fără a fi nevoit să justifice decizia.
             </p>
-            
-            <div style={{ 
-              background: '#FFFBEB', 
-              border: '1px solid #FCD34D', 
-              borderRadius: 'var(--radius-md)', 
-              padding: '16px 20px', 
+
+            <div style={{
+              background: '#FFFBEB',
+              border: '1px solid #FCD34D',
+              borderRadius: 'var(--radius-md)',
+              padding: '16px 20px',
               margin: '12px 0 16px',
               display: 'flex',
               gap: '12px',
@@ -180,8 +180,8 @@ export default function TermeniConditiiPage({ onBack, onNavigateLegal }) {
           <Section id="sec-gdpr" title="9. Protecția Datelor cu Caracter Personal">
             <p>
               Scoatem3D prelucrează datele cu caracter personal (nume, telefon, adresă, email) exclusiv în scopul onorării și expedierii comenzii tale, în deplină conformitate cu Regulamentul European (UE) 2016/679 (GDPR). Pentru detalii complete, consultă secțiunea noastră dedicată{' '}
-              <a 
-                href="#/politica-de-confidentialitate" 
+              <a
+                href="#/politica-de-confidentialitate"
                 onClick={(e) => {
                   if (onNavigateLegal) {
                     e.preventDefault();
@@ -204,12 +204,12 @@ export default function TermeniConditiiPage({ onBack, onNavigateLegal }) {
                 href="https://anpc.ro/ce-este-sal/"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  color: 'var(--primary)', 
-                  textDecoration: 'none', 
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--primary)',
+                  textDecoration: 'none',
                   fontWeight: '600',
                   background: 'var(--bg-warm-tint)',
                   padding: '10px 16px',
@@ -223,12 +223,12 @@ export default function TermeniConditiiPage({ onBack, onNavigateLegal }) {
                 href="https://ec.europa.eu/consumers/odr"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  color: '#2563EB', 
-                  textDecoration: 'none', 
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: '#2563EB',
+                  textDecoration: 'none',
                   fontWeight: '600',
                   background: 'var(--bg-warm-tint)',
                   padding: '10px 16px',
@@ -248,15 +248,15 @@ export default function TermeniConditiiPage({ onBack, onNavigateLegal }) {
           </Section>
 
           {/* Footer Card */}
-          <div style={{ 
-            marginTop: '36px', 
-            padding: '18px 24px', 
-            background: 'var(--bg-warm-tint)', 
-            borderRadius: 'var(--radius-lg)', 
-            border: '1px solid var(--border-light)', 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            flexWrap: 'wrap', 
+          <div style={{
+            marginTop: '36px',
+            padding: '18px 24px',
+            background: 'var(--bg-warm-tint)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-light)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
             gap: '12px',
             alignItems: 'center',
             fontSize: '0.86rem'
@@ -283,13 +283,13 @@ export default function TermeniConditiiPage({ onBack, onNavigateLegal }) {
 function Section({ id, title, children }) {
   return (
     <div id={id} style={{ marginBottom: '32px', scrollMarginTop: '80px' }}>
-      <h2 style={{ 
-        fontSize: '1.15rem', 
-        fontWeight: '700', 
-        color: 'var(--text-main)', 
-        marginBottom: '12px', 
-        paddingBottom: '8px', 
-        borderBottom: '1px solid var(--border-light)' 
+      <h2 style={{
+        fontSize: '1.15rem',
+        fontWeight: '700',
+        color: 'var(--text-main)',
+        marginBottom: '12px',
+        paddingBottom: '8px',
+        borderBottom: '1px solid var(--border-light)'
       }}>
         {title}
       </h2>
