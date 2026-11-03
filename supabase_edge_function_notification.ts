@@ -4,7 +4,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
-const RESEND_FROM = Deno.env.get('RESEND_FROM') || 'Scoatem3D <onboarding@resend.dev>';
+const RESEND_FROM = Deno.env.get('RESEND_FROM') || 'Scoatem3D <comenzi@scoatem3d.ro>';
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'ciocangeorge97@gmail.com';
 const SITE_URL = Deno.env.get('SITE_URL') || 'https://scoatem3d.ro';
 
