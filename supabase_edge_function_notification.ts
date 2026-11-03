@@ -4,6 +4,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
+const RESEND_FROM = Deno.env.get('RESEND_FROM') || 'Scoatem3D <onboarding@resend.dev>';
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'ciocangeorge97@gmail.com';
 const SITE_URL = Deno.env.get('SITE_URL') || 'https://scoatem3d.ro';
 
@@ -15,8 +16,8 @@ async function sendEmail(to: string, subject: string, html: string) {
       Authorization: 'Bearer ' + RESEND_API_KEY
     },
     body: JSON.stringify({
-      from: 'Scoatem3D',
-      reply_to: ['ciocangeorge97@gmail.com'],
+      from: RESEND_FROM,
+      reply_to: 'ciocangeorge97@gmail.com',
       to: [to],
       subject,
       html
