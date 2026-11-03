@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   ArrowLeft, 
   Star, 
@@ -30,6 +30,7 @@ import {
   Lock
 } from 'lucide-react';
 import { uploadCustomerFile, fetchProductReviews, saveProductReview, likeProductReview } from '../lib/supabaseClient';
+import { FormattedDescription } from '../utils/formatDescription';
 
 export default function ProductDetailPage({ 
   product, 
@@ -52,6 +53,55 @@ export default function ProductDetailPage({
     : [product?.image_url || '/images/products/lampa-litofanie.jpg'];
   
   const [activeImage, setActiveImage] = useState(galleryImages[0]);
+  const [isHoveringImage, setIsHoveringImage] = useState(false);
+
+  // Indexul imaginii curente din galerie
+  const currentImageIndex = useMemo(() => {
+    const idx = galleryImages.indexOf(activeImage);
+    return idx >= 0 ? idx : 0;
+  }, [galleryImages, activeImage]);
+
+  // Navigare manuală: poză următoare
+  const handleNextImage = (e) => {
+    e?.stopPropagation?.();
+    if (galleryImages.length <= 1) return;
+    const nextIdx = (currentImageIndex + 1) % galleryImages.length;
+    setActiveImage(galleryImages[nextIdx]);
+  };
+
+  // Navigare manuală: poză anterioară
+  const handlePrevImage = (e) => {
+    e?.stopPropagation?.();
+    if (galleryImages.length <= 1) return;
+    const prevIdx = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
+    setActiveImage(galleryImages[prevIdx]);
+  };
+
+  // Slideshow automat: schimbă poza la fiecare 3.5 secunde (dacă există mai multe poze și mouse-ul nu este deasupra)
+  useEffect(() => {
+    if (galleryImages.length <= 1 || isHoveringImage) return;
+
+    const timer = setInterval(() => {
+      setActiveImage(prev => {
+        const currentIdx = galleryImages.indexOf(prev);
+        const nextIdx = ((currentIdx >= 0 ? currentIdx : 0) + 1) % galleryImages.length;
+        return galleryImages[nextIdx];
+      });
+    }, 3500);
+
+    return () => clearInterval(timer);
+  }, [galleryImages, isHoveringImage]);
+
+  // Câmpuri de personalizare configurate pentru acest produs
+  const customFields = useMemo(() => {
+    let f = product?.fields;
+    if (typeof f === 'string') {
+      try { f = JSON.parse(f); } catch { f = []; }
+    }
+    return Array.isArray(f) ? f : [];
+  }, [product?.fields]);
+
+  const hasCustomFields = customFields.length > 0;
 
   // Tab activ în secțiunea de detalii
   const [activeTab, setActiveTab] = useState('descriere'); // 'descriere' | 'specificatii' | 'ingrijire' | 'faq'
@@ -196,8 +246,9 @@ export default function ProductDetailPage({
 
   // Validare formular de personalizare
   const validateForm = () => {
+    if (!hasCustomFields) return true;
     const newErrors = {};
-    const fields = product.fields || [];
+    const fields = customFields;
 
     fields.forEach(field => {
       if (field.required) {
@@ -253,7 +304,7 @@ export default function ProductDetailPage({
         image_url: product.image_url,
         quantity: quantity,
         customization: finalCustomization,
-        fields_schema: product.fields || []
+        fields_schema: customFields
       };
     } catch (err) {
       console.error('Eroare la procesare fișiere:', err);
@@ -429,23 +480,77 @@ export default function ProductDetailPage({
         <div className="detail-hero-grid">
           {/* COLOANA STÂNGA: GALERIE FOTO & HIGHLIGHTS */}
           <div className="detail-gallery-col">
-            <div className="detail-main-image-wrap">
+            <div 
+              className="detail-main-image-wrap"
+              onMouseEnter={() => setIsHoveringImage(true)}
+              onMouseLeave={() => setIsHoveringImage(false)}
+            >
               {product.badge && (
                 <div className="detail-badge-tag">
                   <span className="badge badge-gold">{product.badge}</span>
                 </div>
               )}
+
+              {/* Indicator număr poze în galerie */}
+              {galleryImages.length > 1 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '14px',
+                  right: '14px',
+                  zIndex: 3,
+                  background: 'rgba(0, 0, 0, 0.55)',
+                  backdropFilter: 'blur(4px)',
+                  WebkitBackdropFilter: 'blur(4px)',
+                  color: '#fff',
+                  fontSize: '0.75rem',
+                  fontWeight: '700',
+                  padding: '4px 10px',
+                  borderRadius: '20px',
+                  letterSpacing: '0.5px'
+                }}>
+                  {currentImageIndex + 1} / {galleryImages.length}
+                </div>
+              )}
+
+              {/* Fundal ambiental generat din culorile pozei */}
+              <img 
+                src={activeImage} 
+                alt="" 
+                className="detail-main-img-ambient" 
+                aria-hidden="true" 
+              />
+
               <img 
                 src={activeImage} 
                 alt={product.name} 
                 className="detail-main-img"
-                onClick={() => onOpenImageViewer && onOpenImageViewer(activeImage, product.name)}
-                style={{ cursor: 'zoom-in' }}
               />
-              <div className="detail-zoom-hint">
-                <Sparkles size={14} />
-                <span>Apasă pentru zoom imagine la claritate maximă</span>
-              </div>
+
+              {/* SĂGEȚI NAVIGARE GALERIE */}
+              {galleryImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="detail-gallery-arrow-btn detail-gallery-arrow-prev"
+                    onClick={handlePrevImage}
+                    title="Poză anterioară"
+                    aria-label="Poză anterioară"
+                  >
+                    <ChevronLeft size={22} />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="detail-gallery-arrow-btn detail-gallery-arrow-next"
+                    onClick={handleNextImage}
+                    title="Poză următoare"
+                    aria-label="Poză următoare"
+                  >
+                    <ChevronRight size={22} />
+                  </button>
+                </>
+              )}
+
             </div>
 
             {/* Miniaturi Galerie */}
@@ -548,176 +653,178 @@ export default function ProductDetailPage({
               </div>
             </div>
 
-            <p className="detail-short-description">
-              {product.description}
-            </p>
+            <div className="detail-short-description">
+              <FormattedDescription text={product.description} />
+            </div>
 
-            {/* FORMULARUL DE PERSONALIZARE INTEGRAT */}
-            <div className="detail-customization-section">
-              <div className="customization-header">
-                <Sparkles size={18} color="var(--primary)" />
-                <h3>Personalizează piesa ta 3D</h3>
-              </div>
-
-              <div className="custom-fields-container">
-                {(product.fields || []).map((field) => {
-                  const isError = Boolean(formErrors[field.key]);
-
-                  // 1. CÂMP IMAGINE
-                  if (field.type === 'image') {
-                    const currentImg = imageFiles[field.key];
-                    return (
-                      <div key={field.key} className="detail-field-group">
-                        <label className="detail-field-label">
-                          <span>
-                            {field.label}
-                            {field.required && <span className="req-star">*</span>}
-                          </span>
-                        </label>
-
-                        {currentImg ? (
-                          <div className="detail-img-preview-card">
-                            <img src={currentImg.previewUrl} alt="Previzualizare" />
-                            <div className="img-preview-meta">
-                              <span className="img-preview-name">{currentImg.fileName}</span>
-                              <span className="img-preview-status">
-                                <CheckCircle2 size={13} color="var(--accent-sage)" /> Poză gata de sculptat în 3D
-                              </span>
-                            </div>
-                            <button 
-                              type="button" 
-                              className="btn-remove-thumb"
-                              onClick={() => handleRemoveImage(field.key)}
-                              title="Șterge poza"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        ) : (
-                          <label className={`detail-dropzone ${isError ? 'error-border' : ''}`}>
-                            <input 
-                              type="file" 
-                              accept="image/*" 
-                              style={{ display: 'none' }}
-                              onChange={(e) => handleFileSelect(field.key, e)}
-                            />
-                            <UploadCloud size={28} color="var(--primary)" />
-                            <strong>Apasă pentru a alege fotografia</strong>
-                            <span>Acceptă JPEG, PNG, WEBP până la 20MB. Calitate originală.</span>
-                          </label>
-                        )}
-
-                        {isError && (
-                          <div className="detail-error-msg">
-                            <AlertCircle size={14} />
-                            <span>{formErrors[field.key]}</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  // 2. CÂMP SELECT DROPDOWN
-                  if (field.type === 'select') {
-                    const currentVal = formData[field.key] || '';
-                    const options = Array.isArray(field.options) ? field.options : [];
-                    return (
-                      <div key={field.key} className="detail-field-group">
-                        <label className="detail-field-label">
-                          <span>
-                            {field.label}
-                            {field.required && <span className="req-star">*</span>}
-                          </span>
-                        </label>
-
-                        <select
-                          className={`detail-select ${isError ? 'error-border' : ''}`}
-                          value={currentVal}
-                          onChange={(e) => handleInputChange(field.key, e.target.value)}
-                        >
-                          <option value="">-- Alege o opțiune --</option>
-                          {options.map((opt, i) => (
-                            <option key={i} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-
-                        {isError && (
-                          <div className="detail-error-msg">
-                            <AlertCircle size={14} />
-                            <span>{formErrors[field.key]}</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  // 3. CÂMP TEXT
-                  const currentVal = formData[field.key] || '';
-                  const maxLen = field.max_length || null;
-                  return (
-                    <div key={field.key} className="detail-field-group">
-                      <div className="detail-field-label">
-                        <span>
-                          {field.label}
-                          {field.required && <span className="req-star">*</span>}
-                        </span>
-                        {maxLen && (
-                          <span className="detail-char-count">
-                            {currentVal.length} / {maxLen} caractere
-                          </span>
-                        )}
-                      </div>
-
-                      <input
-                        type="text"
-                        className={`detail-text-input ${isError ? 'error-border' : ''}`}
-                        value={currentVal}
-                        maxLength={maxLen || undefined}
-                        placeholder={field.required ? "Scrie textul dorit aici..." : "Opțional..."}
-                        onChange={(e) => handleInputChange(field.key, e.target.value)}
-                      />
-
-                      {isError && (
-                        <div className="detail-error-msg">
-                          <AlertCircle size={14} />
-                          <span>{formErrors[field.key]}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* REZUMAT PERSONALIZARE LIVE */}
-              <div className="live-custom-summary-card">
-                <div className="summary-title">
-                  <CheckCircle2 size={16} color="var(--primary)" />
-                  <span>Rezumat Personalizare Live</span>
+            {/* FORMULARUL DE PERSONALIZARE INTEGRAT (Afișat doar dacă produsul are câmpuri de personalizare configurate) */}
+            {hasCustomFields && (
+              <div className="detail-customization-section">
+                <div className="customization-header">
+                  <Sparkles size={18} color="var(--primary)" />
+                  <h3>Personalizează piesa ta 3D</h3>
                 </div>
-                <div className="summary-list">
-                  {(product.fields || []).map(f => {
-                    if (f.type === 'image') {
-                      const img = imageFiles[f.key];
+
+                <div className="custom-fields-container">
+                  {customFields.map((field) => {
+                    const isError = Boolean(formErrors[field.key]);
+
+                    // 1. CÂMP IMAGINE
+                    if (field.type === 'image') {
+                      const currentImg = imageFiles[field.key];
                       return (
-                        <div key={f.key} className="summary-row">
-                          <span className="summary-lbl">{f.label.split('(')[0]}:</span>
-                          <span className="summary-val">
-                            {img ? `Fotografie selectată (${img.fileName.slice(0, 18)}...)` : 'Nicio poză aleasă încă'}
-                          </span>
+                        <div key={field.key} className="detail-field-group">
+                          <label className="detail-field-label">
+                            <span>
+                              {field.label}
+                              {field.required && <span className="req-star">*</span>}
+                            </span>
+                          </label>
+
+                          {currentImg ? (
+                            <div className="detail-img-preview-card">
+                              <img src={currentImg.previewUrl} alt="Previzualizare" />
+                              <div className="img-preview-meta">
+                                <span className="img-preview-name">{currentImg.fileName}</span>
+                                <span className="img-preview-status">
+                                  <CheckCircle2 size={13} color="var(--accent-sage)" /> Poză gata de sculptat în 3D
+                                </span>
+                              </div>
+                              <button 
+                                type="button" 
+                                className="btn-remove-thumb"
+                                onClick={() => handleRemoveImage(field.key)}
+                                title="Șterge poza"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className={`detail-dropzone ${isError ? 'error-border' : ''}`}>
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                style={{ display: 'none' }}
+                                onChange={(e) => handleFileSelect(field.key, e)}
+                              />
+                              <UploadCloud size={28} color="var(--primary)" />
+                              <strong>Apasă pentru a alege fotografia</strong>
+                              <span>Acceptă JPEG, PNG, WEBP până la 20MB. Calitate originală.</span>
+                            </label>
+                          )}
+
+                          {isError && (
+                            <div className="detail-error-msg">
+                              <AlertCircle size={14} />
+                              <span>{formErrors[field.key]}</span>
+                            </div>
+                          )}
                         </div>
                       );
                     }
-                    const val = formData[f.key];
+
+                    // 2. CÂMP SELECT DROPDOWN
+                    if (field.type === 'select') {
+                      const currentVal = formData[field.key] || '';
+                      const options = Array.isArray(field.options) ? field.options : [];
+                      return (
+                        <div key={field.key} className="detail-field-group">
+                          <label className="detail-field-label">
+                            <span>
+                              {field.label}
+                              {field.required && <span className="req-star">*</span>}
+                            </span>
+                          </label>
+
+                          <select
+                            className={`detail-select ${isError ? 'error-border' : ''}`}
+                            value={currentVal}
+                            onChange={(e) => handleInputChange(field.key, e.target.value)}
+                          >
+                            <option value="">-- Alege o opțiune --</option>
+                            {options.map((opt, i) => (
+                              <option key={i} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+
+                          {isError && (
+                            <div className="detail-error-msg">
+                              <AlertCircle size={14} />
+                              <span>{formErrors[field.key]}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // 3. CÂMP TEXT
+                    const currentVal = formData[field.key] || '';
+                    const maxLen = field.max_length || null;
                     return (
-                      <div key={f.key} className="summary-row">
-                        <span className="summary-lbl">{f.label.split('(')[0]}:</span>
-                        <span className="summary-val">{val || 'Nu a fost completat încă'}</span>
+                      <div key={field.key} className="detail-field-group">
+                        <div className="detail-field-label">
+                          <span>
+                            {field.label}
+                            {field.required && <span className="req-star">*</span>}
+                          </span>
+                          {maxLen && (
+                            <span className="detail-char-count">
+                              {currentVal.length} / {maxLen} caractere
+                            </span>
+                          )}
+                        </div>
+
+                        <input
+                          type="text"
+                          className={`detail-text-input ${isError ? 'error-border' : ''}`}
+                          value={currentVal}
+                          maxLength={maxLen || undefined}
+                          placeholder={field.required ? "Scrie textul dorit aici..." : "Opțional..."}
+                          onChange={(e) => handleInputChange(field.key, e.target.value)}
+                        />
+
+                        {isError && (
+                          <div className="detail-error-msg">
+                            <AlertCircle size={14} />
+                            <span>{formErrors[field.key]}</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
+
+                {/* REZUMAT PERSONALIZARE LIVE */}
+                <div className="live-custom-summary-card">
+                  <div className="summary-title">
+                    <CheckCircle2 size={16} color="var(--primary)" />
+                    <span>Rezumat Personalizare Live</span>
+                  </div>
+                  <div className="summary-list">
+                    {customFields.map(f => {
+                      if (f.type === 'image') {
+                        const img = imageFiles[f.key];
+                        return (
+                          <div key={f.key} className="summary-row">
+                            <span className="summary-lbl">{f.label.split('(')[0]}:</span>
+                            <span className="summary-val">
+                              {img ? `Fotografie selectată (${img.fileName.slice(0, 18)}...)` : 'Nicio poză aleasă încă'}
+                            </span>
+                          </div>
+                        );
+                      }
+                      const val = formData[f.key];
+                      return (
+                        <div key={f.key} className="summary-row">
+                          <span className="summary-lbl">{f.label.split('(')[0]}:</span>
+                          <span className="summary-val">{val || 'Nu a fost completat încă'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* CANTITATE & BUTOANE DE COMANDĂ */}
             <div className="detail-cta-box">
@@ -838,9 +945,7 @@ export default function ProductDetailPage({
                 <h3 className="pane-heading">Arta imprimării 3D personalizate pentru amintirile tale</h3>
                 
                 <div className="desc-paragraphs">
-                  {(product.long_description || product.description).split('\n\n').map((paragraph, i) => (
-                    <p key={i}>{paragraph}</p>
-                  ))}
+                  <FormattedDescription text={product.long_description || product.description} />
                 </div>
 
                 {product.highlights && product.highlights.length > 0 && (

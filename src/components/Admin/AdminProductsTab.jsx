@@ -2,8 +2,9 @@ import React, { useState, useMemo, useRef } from 'react';
 import { 
   Plus, Edit2, Trash2, Power, UploadCloud, Layers, X, 
   Check, AlertCircle, Sparkles, HelpCircle, FolderTree,
-  Image as ImageIcon, Star
+  Image as ImageIcon, Star, Bold, Italic, ListOrdered, List, Eye, Edit3
 } from 'lucide-react';
+import { FormattedDescription } from '../../utils/formatDescription';
 import { 
   saveProduct, 
   deleteProduct, 
@@ -21,10 +22,88 @@ export default function AdminProductsTab({
 }) {
   const [editingProduct, setEditingProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isUploadingImg, setIsUploadingImg] = useState(false);
-  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [galleryUrlInput, setGalleryUrlInput] = useState('');
+  const [descTab, setDescTab] = useState('write'); // 'write' | 'preview'
+  const descriptionTextareaRef = useRef(null);
+
+  // Formatare text stil Word pentru descriere
+  const handleFormatDescription = (type) => {
+    const textarea = descriptionTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = productForm.description || '';
+    const selected = text.substring(start, end);
+
+    let replacement = '';
+    let newCursorPos = start;
+
+    if (type === 'bold') {
+      if (selected) {
+        replacement = `**${selected}**`;
+        newCursorPos = start + replacement.length;
+      } else {
+        replacement = '**Text îngroșat**';
+        newCursorPos = start + 2;
+      }
+    } else if (type === 'italic') {
+      if (selected) {
+        replacement = `*${selected}*`;
+        newCursorPos = start + replacement.length;
+      } else {
+        replacement = '*Text cursiv*';
+        newCursorPos = start + 1;
+      }
+    } else if (type === 'ordered') {
+      if (selected) {
+        const lines = selected.split('\n');
+        replacement = lines.map((l, i) => `${i + 1}. ${l.replace(/^(\d+[\.\)]|[•\-\*])\s*/, '')}`).join('\n');
+        newCursorPos = start + replacement.length;
+      } else {
+        const prefix = (start > 0 && text[start - 1] !== '\n') ? '\n' : '';
+        replacement = `${prefix}1. Primul element\n2. Al doilea element\n3. Al treilea element\n`;
+        newCursorPos = start + replacement.length;
+      }
+    } else if (type === 'bullet') {
+      if (selected) {
+        const lines = selected.split('\n');
+        replacement = lines.map(l => `• ${l.replace(/^(\d+[\.\)]|[•\-\*])\s*/, '')}`).join('\n');
+        newCursorPos = start + replacement.length;
+      } else {
+        const prefix = (start > 0 && text[start - 1] !== '\n') ? '\n' : '';
+        replacement = `${prefix}• Primul detaliu\n• Al doilea detaliu\n• Al treilea detaliu\n`;
+        newCursorPos = start + replacement.length;
+      }
+    }
+
+    const nextVal = text.substring(0, start) + replacement + text.substring(end);
+    setProductForm(prev => ({ ...prev, description: nextVal }));
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  };
+
+  // Fișiere în așteptare (nu încă urcate pe Supabase)
+  // Structură: { id, file, previewUrl, isPrimary }
+  // - id: string unic pentru identificare
+  // - file: File object original
+  // - previewUrl: URL.createObjectURL(file) — doar pentru preview local
+  // - isPrimary: dacă e imaginea principală cover
+  const [pendingMainFile, setPendingMainFile] = useState(null);  // { file, previewUrl }
+  const [pendingGalleryFiles, setPendingGalleryFiles] = useState([]); // [{ id, file, previewUrl }]
+
   const galleryFileInputRef = useRef(null);
+  const mainFileInputRef = useRef(null);
+
+  // Curăță toate object URL-urile create local (anti memory leak)
+  const revokeAllPreviews = () => {
+    if (pendingMainFile?.previewUrl) URL.revokeObjectURL(pendingMainFile.previewUrl);
+    pendingGalleryFiles.forEach(pf => URL.revokeObjectURL(pf.previewUrl));
+  };
 
   // Quick add categorie din modal
   const [isAddingQuickCat, setIsAddingQuickCat] = useState(false);
@@ -57,6 +136,9 @@ export default function AdminProductsTab({
 
   // Deschidere modal pentru creare produs nou
   const handleOpenNewProduct = () => {
+    revokeAllPreviews();
+    setPendingMainFile(null);
+    setPendingGalleryFiles([]);
     setEditingProduct(null);
     setProductForm({
       name: '',
@@ -70,11 +152,15 @@ export default function AdminProductsTab({
       fields: []
     });
     setGalleryUrlInput('');
+    setDescTab('write');
     setIsModalOpen(true);
   };
 
   // Deschidere modal pentru editare produs existent
   const handleOpenEditProduct = (prod) => {
+    revokeAllPreviews();
+    setPendingMainFile(null);
+    setPendingGalleryFiles([]);
     setEditingProduct(prod);
     setProductForm({
       id: prod.id,
@@ -89,7 +175,16 @@ export default function AdminProductsTab({
       fields: JSON.parse(JSON.stringify(prod.fields || []))
     });
     setGalleryUrlInput('');
+    setDescTab('write');
     setIsModalOpen(true);
+  };
+
+  // Închidere modal (cu curățare object URL-uri)
+  const handleCloseModal = () => {
+    revokeAllPreviews();
+    setPendingMainFile(null);
+    setPendingGalleryFiles([]);
+    setIsModalOpen(false);
   };
 
   // Schimbare stare activ/inactiv din listă
@@ -99,59 +194,60 @@ export default function AdminProductsTab({
     onRefresh();
   };
 
-  // Ștergere produs
-  const handleDelete = async (prodId, prodName) => {
-    if (window.confirm(`Ești sigur că vrei să ștergi produsul "${prodName}"?`)) {
-      await deleteProduct(prodId);
-      onRefresh();
+  // Ștergere produs (inclusiv fișierele din Storage)
+  const handleDelete = async (prod) => {
+    if (window.confirm(`Ești sigur că vrei să ștergi produsul "${prod.name}"?\nSe vor șterge definitiv produsul și pozele asociate din Supabase Storage.`)) {
+      try {
+        const result = await deleteProduct(prod.id, prod);
+        if (result?.storageWarning === 'RLS_DELETE_BLOCKED') {
+          alert(
+            `Produsul "${prod.name}" a fost șters din magazin!\n\n` +
+            `⚠️ ATENȚIE: Pozele nu au putut fi șterse automat din Supabase Storage din cauza lipsei permisiunii RLS DELETE.\n\n` +
+            `Pentru ca pozele să fie șterse automat pe viitor, mergi în Supabase Dashboard > SQL Editor și rulează:\n\n` +
+            `CREATE POLICY "Admin can delete product-images" ON storage.objects FOR DELETE USING (bucket_id = 'product-images');`
+          );
+        }
+        onRefresh();
+      } catch (err) {
+        console.error(err);
+        alert('Eroare la ștergerea produsului: ' + (err.message || err));
+      }
     }
   };
 
-  // Upload imagine produs (principală)
-  const handleImageFileChange = async (e) => {
+  // ──────────────────────────────────────────────────────
+  // IMAGINE PRINCIPALĂ — stocare locală, fără upload imediat
+  // ──────────────────────────────────────────────────────
+  const handleMainFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    setIsUploadingImg(true);
-    try {
-      const uploadedUrl = await uploadProductImage(file);
-      if (uploadedUrl) {
-        setProductForm(prev => ({ ...prev, image_url: uploadedUrl }));
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Eroare la încărcarea imaginii de produs.');
-    } finally {
-      setIsUploadingImg(false);
-    }
+    // Revocăm preview-ul anterior dacă exista
+    if (pendingMainFile?.previewUrl) URL.revokeObjectURL(pendingMainFile.previewUrl);
+    const previewUrl = URL.createObjectURL(file);
+    setPendingMainFile({ file, previewUrl });
+    // Setăm previewUrl drept image_url temporar (ca să se afișeze)
+    setProductForm(prev => ({ ...prev, image_url: previewUrl }));
+    if (mainFileInputRef.current) mainFileInputRef.current.value = '';
   };
 
-  // Upload imagine în galerie
-  const handleGalleryFileChange = async (e) => {
+  // ──────────────────────────────────────────────────────
+  // GALERIE — stocare locală, fără upload imediat
+  // ──────────────────────────────────────────────────────
+  const handleGalleryFileChange = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-
-    setIsUploadingGallery(true);
-    try {
-      const uploadedUrls = [];
-      for (const file of files) {
-        const url = await uploadProductImage(file);
-        if (url) uploadedUrls.push(url);
-      }
-      if (uploadedUrls.length) {
-        setProductForm(prev => ({
-          ...prev,
-          gallery: [...prev.gallery, ...uploadedUrls]
-        }));
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Eroare la încărcarea imaginilor în galerie.');
-    } finally {
-      setIsUploadingGallery(false);
-      // reset input so same files can be picked again
-      if (galleryFileInputRef.current) galleryFileInputRef.current.value = '';
-    }
+    const newPending = files.map(file => ({
+      id: `pending_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      file,
+      previewUrl: URL.createObjectURL(file)
+    }));
+    setPendingGalleryFiles(prev => [...prev, ...newPending]);
+    // Adăugăm previewUrl-urile în gallery ca placeholder vizual
+    setProductForm(prev => ({
+      ...prev,
+      gallery: [...prev.gallery, ...newPending.map(pf => pf.previewUrl)]
+    }));
+    if (galleryFileInputRef.current) galleryFileInputRef.current.value = '';
   };
 
   // Adăugare imagine în galerie prin URL
@@ -162,8 +258,15 @@ export default function AdminProductsTab({
     setGalleryUrlInput('');
   };
 
-  // Ștergere imagine din galerie
+  // Ștergere imagine din galerie (poate fi URL real sau previewUrl pending)
   const handleRemoveGalleryImage = (idx) => {
+    const removedUrl = productForm.gallery[idx];
+    // Dacă e un fișier pending, îl revocăm și îl scoatem din lista pending
+    setPendingGalleryFiles(prev => {
+      const found = prev.find(pf => pf.previewUrl === removedUrl);
+      if (found) URL.revokeObjectURL(found.previewUrl);
+      return prev.filter(pf => pf.previewUrl !== removedUrl);
+    });
     setProductForm(prev => ({
       ...prev,
       gallery: prev.gallery.filter((_, i) => i !== idx)
@@ -242,7 +345,7 @@ export default function AdminProductsTab({
     }));
   };
 
-  // Salvare formular
+  // Salvare formular — uploadul fișierelor are loc ACUM
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     if (!productForm.name.trim() || !productForm.price) {
@@ -250,22 +353,73 @@ export default function AdminProductsTab({
       return;
     }
 
-    // Construim gallery final: dacă image_url nu e deja în galerie, îl adăugăm la început
-    const galleryFinal = [...productForm.gallery];
-    if (productForm.image_url && !galleryFinal.includes(productForm.image_url)) {
-      galleryFinal.unshift(productForm.image_url);
-    }
-
+    setIsSaving(true);
     try {
-      const result = await saveProduct({ ...productForm, gallery: galleryFinal });
+      let finalImageUrl = productForm.image_url;
+      let finalGallery = [...productForm.gallery];
+
+      // 1. Upload imagine principală dacă e un fișier pending
+      if (pendingMainFile) {
+        const uploadedUrl = await uploadProductImage(pendingMainFile.file);
+        if (uploadedUrl) {
+          // Înlocuim previewUrl cu URL-ul real în gallery și image_url
+          finalGallery = finalGallery.map(u =>
+            u === pendingMainFile.previewUrl ? uploadedUrl : u
+          );
+          if (finalImageUrl === pendingMainFile.previewUrl) {
+            finalImageUrl = uploadedUrl;
+          }
+          URL.revokeObjectURL(pendingMainFile.previewUrl);
+        }
+      }
+
+      // 2. Upload imagini galerie pending (în paralel pentru viteză)
+      if (pendingGalleryFiles.length > 0) {
+        const uploadResults = await Promise.all(
+          pendingGalleryFiles.map(async (pf) => {
+            const uploadedUrl = await uploadProductImage(pf.file);
+            URL.revokeObjectURL(pf.previewUrl);
+            return { previewUrl: pf.previewUrl, uploadedUrl };
+          })
+        );
+        // Înlocuim fiecare previewUrl cu URL-ul real în gallery
+        for (const { previewUrl, uploadedUrl } of uploadResults) {
+          if (uploadedUrl) {
+            finalGallery = finalGallery.map(u => u === previewUrl ? uploadedUrl : u);
+            if (finalImageUrl === previewUrl) finalImageUrl = uploadedUrl;
+          } else {
+            // Dacă upload-ul a eșuat, scoatem imaginea din galerie
+            finalGallery = finalGallery.filter(u => u !== previewUrl);
+          }
+        }
+      }
+
+      // 3. Asigurăm că image_url e și în galerie (la prima poziție)
+      if (finalImageUrl && !finalGallery.includes(finalImageUrl)) {
+        finalGallery.unshift(finalImageUrl);
+      }
+
+      // 4. Salvăm în Supabase
+      const result = await saveProduct({
+        ...productForm,
+        image_url: finalImageUrl,
+        gallery: finalGallery
+      });
+
       if (result?._needsGalleryColumn) {
         alert('Produsul a fost salvat, dar galeria de imagini nu a putut fi stocată.\nRulează în Supabase SQL Editor:\nALTER TABLE public.products ADD COLUMN IF NOT EXISTS gallery JSONB DEFAULT \'[]\'::jsonb;');
       }
+
+      // Curăță starea pending
+      setPendingMainFile(null);
+      setPendingGalleryFiles([]);
       setIsModalOpen(false);
       onRefresh();
     } catch (err) {
       console.error(err);
-      alert('Eroare la salvarea produsului.');
+      alert('Eroare la salvarea produsului: ' + (err.message || err));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -379,7 +533,7 @@ export default function AdminProductsTab({
 
                 <button
                   className="btn-secondary"
-                  onClick={() => handleDelete(prod.id, prod.name)}
+                  onClick={() => handleDelete(prod)}
                   style={{ padding: '8px 12px', color: '#DC2626' }}
                   title="Șterge produs"
                 >
@@ -395,13 +549,13 @@ export default function AdminProductsTab({
           MODAL ADĂUGARE / EDITARE PRODUS & CONSTRUCTOR VIZUAL CÂMPURI
           ======================================================================== */}
       {isModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+        <div className="modal-overlay" onClick={handleCloseModal}>
           <div 
             className="modal-card" 
             onClick={(e) => e.stopPropagation()} 
             style={{ maxWidth: '820px' }}
           >
-            <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>
+            <button className="modal-close-btn" onClick={handleCloseModal}>
               <X size={20} />
             </button>
 
@@ -519,15 +673,201 @@ export default function AdminProductsTab({
                 </div>
               </div>
 
-              {/* Descriere */}
-              <div style={{ marginBottom: '16px' }}>
-                <label className="form-label-custom">Descriere Produs</label>
-                <textarea
-                  className="custom-input"
-                  rows={2}
-                  value={productForm.description}
-                  onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                />
+              {/* Descriere cu toolbar stil Word */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label className="form-label-custom" style={{ margin: 0 }}>
+                    Descriere Produs (Formatare stil Word / Text Îmbogățit)
+                  </label>
+
+                  {/* Buton comutare Editor / Previzualizare */}
+                  <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-warm-tint)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border-light)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setDescTab('write')}
+                      style={{
+                        background: descTab === 'write' ? 'var(--bg-card)' : 'transparent',
+                        color: descTab === 'write' ? 'var(--primary)' : 'var(--text-secondary)',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '4px 10px',
+                        fontSize: '0.78rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Edit3 size={13} />
+                      <span>Editare</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDescTab('preview')}
+                      style={{
+                        background: descTab === 'preview' ? 'var(--bg-card)' : 'transparent',
+                        color: descTab === 'preview' ? 'var(--primary)' : 'var(--text-secondary)',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '4px 10px',
+                        fontSize: '0.78rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Eye size={13} />
+                      <span>Previzualizare</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Toolbar Word-like */}
+                {descTab === 'write' && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 12px',
+                    background: 'var(--bg-warm-tint)',
+                    border: '1px solid var(--border-light)',
+                    borderBottom: 'none',
+                    borderRadius: '8px 8px 0 0',
+                    flexWrap: 'wrap'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => handleFormatDescription('bold')}
+                      title="Îngroșat (Bold) - selectează un text sau apasă aici"
+                      style={{
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-light)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '0.82rem',
+                        fontWeight: '800',
+                        color: 'var(--text-main)'
+                      }}
+                    >
+                      <Bold size={14} />
+                      <span>Bold</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleFormatDescription('italic')}
+                      title="Cursiv (Italic)"
+                      style={{
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-light)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '0.82rem',
+                        fontStyle: 'italic',
+                        color: 'var(--text-main)'
+                      }}
+                    >
+                      <Italic size={14} />
+                      <span>Cursiv</span>
+                    </button>
+
+                    <div style={{ width: '1px', height: '20px', background: 'var(--border-light)', margin: '0 4px' }} />
+
+                    <button
+                      type="button"
+                      onClick={() => handleFormatDescription('ordered')}
+                      title="Listă Numerotată (1. 2. 3.) - numerotează rândurile selectate"
+                      style={{
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-light)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '0.82rem',
+                        fontWeight: '600',
+                        color: 'var(--text-main)'
+                      }}
+                    >
+                      <ListOrdered size={15} color="var(--primary)" />
+                      <span>1. 2. 3. Numerotare</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleFormatDescription('bullet')}
+                      title="Listă cu Buline (•)"
+                      style={{
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-light)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '0.82rem',
+                        fontWeight: '600',
+                        color: 'var(--text-main)'
+                      }}
+                    >
+                      <List size={15} color="var(--primary)" />
+                      <span>• Buline</span>
+                    </button>
+
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                      💡 Selectează textul cu mouse-ul și apasă pe buton
+                    </span>
+                  </div>
+                )}
+
+                {descTab === 'write' ? (
+                  <textarea
+                    ref={descriptionTextareaRef}
+                    className="custom-input"
+                    rows={6}
+                    value={productForm.description}
+                    onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                    placeholder="Scrie descrierea produsului...&#10;Exemplu:&#10;Această lampă este **unică** și realizată din PLA biodegradabil.&#10;&#10;Beneficii principale:&#10;1. Personalizată cu fotografia ta&#10;2. Bază din lemn natural cu lumină caldă&#10;3. Consum redus pe USB"
+                    style={{
+                      borderRadius: descTab === 'write' ? '0 0 8px 8px' : '8px',
+                      fontFamily: 'inherit',
+                      lineHeight: '1.6',
+                      resize: 'vertical'
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    minHeight: '150px',
+                    padding: '16px',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-light)',
+                    borderRadius: '8px',
+                    fontSize: '0.9rem',
+                    color: 'var(--text-main)'
+                  }}>
+                    {productForm.description ? (
+                      <FormattedDescription text={productForm.description} />
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        Descrierea este goală. Comută pe „Editare” pentru a scrie textul.
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Imagine Principală Produs */}
@@ -543,16 +883,28 @@ export default function AdminProductsTab({
                     <input
                       type="text"
                       className="custom-input"
-                      value={productForm.image_url}
-                      onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })}
-                      placeholder="URL imagine principală..."
+                      value={pendingMainFile ? '' : productForm.image_url}
+                      onChange={(e) => {
+                        // URL manual → anulăm fișierul pending dacă era
+                        if (pendingMainFile) {
+                          URL.revokeObjectURL(pendingMainFile.previewUrl);
+                          setPendingMainFile(null);
+                        }
+                        setProductForm({ ...productForm, image_url: e.target.value });
+                      }}
+                      placeholder={pendingMainFile ? `📎 ${pendingMainFile.file.name} (se urcă la salvare)` : 'URL imagine principală...'}
                       style={{ marginBottom: '8px' }}
                     />
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', cursor: 'pointer', color: 'var(--primary)', fontWeight: '600' }}>
                       <UploadCloud size={16} />
-                      <span>{isUploadingImg ? 'Se încarcă...' : 'Încarcă poză principală de pe dispozitiv'}</span>
-                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageFileChange} />
+                      <span>Alege poză principală de pe dispozitiv</span>
+                      <input ref={mainFileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleMainFileChange} />
                     </label>
+                    {pendingMainFile && (
+                      <span style={{ marginLeft: '12px', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        ⏳ Se urcă la salvare
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -575,10 +927,10 @@ export default function AdminProductsTab({
                       background: 'var(--bg-card)', border: '1px solid var(--border-light)',
                       borderRadius: '8px', padding: '6px 12px'
                     }}
-                    title="Poți selecta mai multe poze deodată"
+                    title="Poți selecta mai multe poze deodată. Se urcă pe Supabase la salvare."
                   >
                     <UploadCloud size={15} />
-                    <span>{isUploadingGallery ? 'Se încarcă...' : 'Adaugă poze'}</span>
+                    <span>Adaugă poze</span>
                     <input
                       ref={galleryFileInputRef}
                       type="file"
@@ -586,7 +938,6 @@ export default function AdminProductsTab({
                       multiple
                       style={{ display: 'none' }}
                       onChange={handleGalleryFileChange}
-                      disabled={isUploadingGallery}
                     />
                   </label>
                 </div>
@@ -596,6 +947,7 @@ export default function AdminProductsTab({
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
                     {productForm.gallery.map((imgUrl, idx) => {
                       const isPrimary = imgUrl === productForm.image_url;
+                      const isPending = pendingGalleryFiles.some(pf => pf.previewUrl === imgUrl);
                       return (
                         <div
                           key={idx}
@@ -624,6 +976,17 @@ export default function AdminProductsTab({
                               letterSpacing: '0.5px'
                             }}>
                               COVER
+                            </div>
+                          )}
+                          {/* Badge "în așteptare" */}
+                          {isPending && !isPrimary && (
+                            <div style={{
+                              position: 'absolute', bottom: 0, left: 0, right: 0,
+                              background: 'rgba(0,0,0,0.55)', color: '#fff',
+                              fontSize: '0.58rem', fontWeight: '600',
+                              textAlign: 'center', padding: '2px 0'
+                            }}>
+                              ⏳ local
                             </div>
                           )}
                           {/* Buton ștergere */}
@@ -693,6 +1056,11 @@ export default function AdminProductsTab({
                 </div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>
                   Apasă ⭐ pe o imagine ca să o setezi drept cover. Apasă ✕ ca s-o ștergi din galerie.
+                  {pendingGalleryFiles.length > 0 && (
+                    <span style={{ color: 'var(--primary)', fontWeight: '600' }}>
+                      {' '}· {pendingGalleryFiles.length} {pendingGalleryFiles.length === 1 ? 'poză nouă' : 'poze noi'} se urcă pe Supabase la salvare.
+                    </span>
+                  )}
                 </p>
               </div>
 
@@ -845,13 +1213,18 @@ export default function AdminProductsTab({
                 <button
                   type="button"
                   className="btn-secondary"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={handleCloseModal}
+                  disabled={isSaving}
                 >
                   Anulează
                 </button>
-                <button type="submit" className="btn-primary">
+                <button type="submit" className="btn-primary" disabled={isSaving}>
                   <Check size={18} />
-                  <span>Salvează Produsul</span>
+                  <span>
+                    {isSaving
+                      ? `Se salvează${(pendingMainFile || pendingGalleryFiles.length > 0) ? ' și se urcă pozele' : ''}...`
+                      : 'Salvează Produsul'}
+                  </span>
                 </button>
               </div>
             </form>

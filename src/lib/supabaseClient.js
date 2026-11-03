@@ -282,9 +282,122 @@ export async function toggleProductActiveState(productId, newActiveState) {
   if (error) throw error;
 }
 
-export async function deleteProduct(productId) {
+export function extractStorageFileKeys(urls, bucketName = 'product-images') {
+  if (!urls) return [];
+  const list = Array.isArray(urls) ? urls : [urls];
+  const keys = [];
+
+  for (const item of list) {
+    if (!item || typeof item !== 'string') continue;
+    let key = null;
+    const marker = `/${bucketName}/`;
+    const markerIdx = item.indexOf(marker);
+
+    if (markerIdx !== -1) {
+      const raw = item.substring(markerIdx + marker.length);
+      key = raw.split('?')[0].split('#')[0];
+    } else if (item.startsWith(`${bucketName}/`)) {
+      const raw = item.substring(bucketName.length + 1);
+      key = raw.split('?')[0].split('#')[0];
+    } else if (item.startsWith('product_')) {
+      key = item.split('?')[0].split('#')[0];
+    }
+
+    if (key) {
+      try {
+        key = decodeURIComponent(key);
+      } catch {
+        // păstrăm cheia brută dacă decodeURIComponent eșuează
+      }
+      key = key.trim();
+      if (key && !keys.includes(key)) {
+        keys.push(key);
+      }
+    }
+  }
+
+  return keys;
+}
+
+export async function deleteProduct(productId, productData = null) {
+  let targetProduct = productData;
+
+  // 1. Aducem datele direct din DB dacă lipsesc sau nu au imagini
+  try {
+    const { data: dbData } = await supabase
+      .from("products")
+      .select("image_url, gallery")
+      .eq("id", productId)
+      .maybeSingle();
+    if (dbData) {
+      targetProduct = { ...(targetProduct || {}), ...dbData };
+    }
+  } catch (err) {
+    console.warn("[deleteProduct] Nu s-au putut prelua datele suplimentare din DB:", err);
+  }
+
+  // 2. Colectăm toate URL-urile de imagini ale produsului
+  const allImages = [];
+  if (targetProduct?.image_url && typeof targetProduct.image_url === 'string') {
+    allImages.push(targetProduct.image_url);
+  }
+
+  if (targetProduct?.gallery) {
+    let gal = targetProduct.gallery;
+    if (typeof gal === 'string') {
+      try { gal = JSON.parse(gal); } catch { gal = [gal]; }
+    }
+    if (Array.isArray(gal)) {
+      gal.forEach(u => {
+        if (u && typeof u === 'string' && !allImages.includes(u)) {
+          allImages.push(u);
+        }
+      });
+    }
+  }
+
+  // 3. Extragem cheile fișierelor din bucket-ul "product-images"
+  const BUCKET_NAME = 'product-images';
+  const storageKeys = extractStorageFileKeys(allImages, BUCKET_NAME);
+
+  let storageWarning = null;
+  let deletedFiles = [];
+
+  // 4. Ștergem fișierele din Storage dacă am identificat chei
+  if (storageKeys.length > 0) {
+    console.log(`[deleteProduct] Se șterg ${storageKeys.length} fișiere din Supabase Storage:`, storageKeys);
+    try {
+      const { data: removedData, error: storageError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .remove(storageKeys);
+
+      if (storageError) {
+        console.error("[deleteProduct] Eroare Storage:", storageError);
+        storageWarning = storageError.message;
+      } else {
+        deletedFiles = removedData || [];
+        console.log("[deleteProduct] Fișiere șterse cu succes din Storage:", deletedFiles);
+        if (storageKeys.length > 0 && deletedFiles.length === 0) {
+          console.warn("[deleteProduct] Atenție: 0 fișiere au fost șterse. Este probabil necesară politica RLS FOR DELETE pe storage.objects.");
+          storageWarning = "RLS_DELETE_BLOCKED";
+        }
+      }
+    } catch (e) {
+      console.error("[deleteProduct] Excepție la ștergerea fișierelor:", e);
+      storageWarning = e.message;
+    }
+  }
+
+  // 5. Ștergem înregistrarea din baza de date
   const { error } = await supabase.from("products").delete().eq("id", productId);
   if (error) throw error;
+
+  return {
+    success: true,
+    deletedKeys: storageKeys,
+    deletedFiles,
+    storageWarning
+  };
 }
 
 // ==============================================================================

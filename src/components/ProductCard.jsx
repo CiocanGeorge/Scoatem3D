@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowRight, Wand2, Star, Eye, Heart } from 'lucide-react';
+import { stripFormatting } from '../utils/formatDescription';
 
 export default function ProductCard({ 
   product, 
@@ -85,7 +86,7 @@ export default function ProductCard({
         </div>
 
         <h3 className="product-name">{product.name}</h3>
-        <p className="product-description-snippet">{product.description}</p>
+        <p className="product-description-snippet">{stripFormatting(product.description)}</p>
 
         <div className="product-card-footer">
           <div className="product-price-box">

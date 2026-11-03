@@ -4,7 +4,33 @@ import { isSupabaseConfigured } from '../../lib/supabaseClient';
 
 export default function AdminSupabaseGuideTab() {
   const [copied, setCopied] = useState(false);
+  const [copiedStorageSql, setCopiedStorageSql] = useState(false);
   const isConnected = isSupabaseConfigured();
+
+  const storageDeleteSql = `-- Permisiuni pentru stergere si actualizare imagini in Supabase Storage
+DROP POLICY IF EXISTS "Admin can delete product-images" ON storage.objects;
+CREATE POLICY "Admin can delete product-images"
+    ON storage.objects
+    FOR DELETE
+    USING (bucket_id = 'product-images');
+
+DROP POLICY IF EXISTS "Admin can update product-images" ON storage.objects;
+CREATE POLICY "Admin can update product-images"
+    ON storage.objects
+    FOR UPDATE
+    USING (bucket_id = 'product-images');
+
+DROP POLICY IF EXISTS "Admin can delete customer-uploads" ON storage.objects;
+CREATE POLICY "Admin can delete customer-uploads"
+    ON storage.objects
+    FOR DELETE
+    USING (bucket_id = 'customer-uploads');`;
+
+  const handleCopyStorageSql = () => {
+    navigator.clipboard.writeText(storageDeleteSql);
+    setCopiedStorageSql(true);
+    setTimeout(() => setCopiedStorageSql(false), 2500);
+  };
 
   const handleCopySqlScript = async () => {
     try {
@@ -119,6 +145,36 @@ export default function AdminSupabaseGuideTab() {
             <li>Storage Buckets: <code>customer-uploads</code> (calitate foto originală, link direct) și <code>product-images</code></li>
             <li>Politicile <strong>RLS (Row Level Security)</strong>: clienții pot comanda și încărca fotografii, iar comenzile pot fi citite/modificate <strong>doar de admin</strong>!</li>
           </ul>
+
+          {/* Secțiune rapidă pentru permisiuni ștergere Storage */}
+          <div style={{ marginTop: '18px', paddingTop: '16px', borderTop: '1px solid var(--border-light)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <strong style={{ fontSize: '0.88rem', color: 'var(--primary)' }}>
+                🔥 Permisiuni Ștergere Poze din Storage (dacă ai rulat schema mai demult):
+              </strong>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleCopyStorageSql}
+                style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+              >
+                {copiedStorageSql ? <Check size={13} color="var(--accent-sage)" /> : <Copy size={13} />}
+                <span>{copiedStorageSql ? 'Copiat!' : 'Copiază SQL Ștergere Storage'}</span>
+              </button>
+            </div>
+            <pre style={{
+              background: '#1E1B18',
+              color: '#E6DCD2',
+              padding: '10px 14px',
+              borderRadius: '6px',
+              fontFamily: 'monospace',
+              fontSize: '0.78rem',
+              overflowX: 'auto',
+              margin: 0
+            }}>
+{storageDeleteSql}
+            </pre>
+          </div>
         </div>
 
         {/* Pasul 2: Variabile de mediu */}

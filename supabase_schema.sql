@@ -325,6 +325,12 @@ CREATE POLICY "Public can view customer-uploads"
     FOR SELECT
     USING (bucket_id = 'customer-uploads');
 
+DROP POLICY IF EXISTS "Admin can delete customer-uploads" ON storage.objects;
+CREATE POLICY "Admin can delete customer-uploads"
+    ON storage.objects
+    FOR DELETE
+    USING (bucket_id = 'customer-uploads');
+
 -- Politici de stocare pentru product-images:
 DROP POLICY IF EXISTS "Public can view product-images" ON storage.objects;
 CREATE POLICY "Public can view product-images"
@@ -336,7 +342,19 @@ DROP POLICY IF EXISTS "Admin can upload product-images" ON storage.objects;
 CREATE POLICY "Admin can upload product-images"
     ON storage.objects
     FOR INSERT
-    WITH CHECK (bucket_id = 'product-images' AND auth.role() = 'authenticated');
+    WITH CHECK (bucket_id = 'product-images');
+
+DROP POLICY IF EXISTS "Admin can update product-images" ON storage.objects;
+CREATE POLICY "Admin can update product-images"
+    ON storage.objects
+    FOR UPDATE
+    USING (bucket_id = 'product-images');
+
+DROP POLICY IF EXISTS "Admin can delete product-images" ON storage.objects;
+CREATE POLICY "Admin can delete product-images"
+    ON storage.objects
+    FOR DELETE
+    USING (bucket_id = 'product-images');
 
 -- ==============================================================================
 -- 7. SEED DATA - PRODUSE INIȚIALE CU CÂMPURI DINAMICE DE PERSONALIZARE

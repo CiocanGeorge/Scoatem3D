@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, UploadCloud, CheckCircle2, AlertCircle, ShoppingBag, Trash2, Loader2, Sparkles } from 'lucide-react';
 import { uploadCustomerFile } from '../lib/supabaseClient';
+import { FormattedDescription } from '../utils/formatDescription';
 
 export default function ProductCustomizerModal({ product, onClose, onAddToCart }) {
   // Stare pentru valorile completate de client { [fieldKey]: value }
@@ -244,9 +245,9 @@ export default function ProductCustomizerModal({ product, onClose, onAddToCart }
                 </span>
                 <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>TVA inclus • Livrare gratuită la peste 200 Lei</span>
               </div>
-              <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                {product.description}
-              </p>
+              <div style={{ fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                <FormattedDescription text={product.description} />
+              </div>
             </div>
 
             <hr style={{ border: 'none', borderTop: '1px solid var(--border-light)', margin: '18px 0' }} />
