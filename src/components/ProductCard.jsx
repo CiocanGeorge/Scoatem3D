@@ -56,10 +56,20 @@ export default function ProductCard({
           />
         </button>
 
+        {/* Ambient blurred background */}
+        <img
+          src={product.image_url || '/images/products/lampa-litofanie.jpg'}
+          alt=""
+          aria-hidden="true"
+          className="product-img-ambient"
+          onError={(e) => { e.target.onerror = null; e.target.src = '/images/products/lampa-litofanie.jpg'; }}
+        />
+        {/* Main image – contain */}
         <img 
           src={product.image_url || '/images/products/lampa-litofanie.jpg'} 
           alt={product.name}
           loading="lazy"
+          className="product-img-main"
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = '/images/products/lampa-litofanie.jpg';

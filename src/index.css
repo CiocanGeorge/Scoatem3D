@@ -1056,15 +1056,35 @@ button:disabled {
   background-color: var(--bg-warm-tint);
 }
 
-.product-img-box img {
+/* Ambient blurred background layer */
+.product-img-ambient {
+  position: absolute;
+  inset: -10px;
+  width: calc(100% + 20px);
+  height: calc(100% + 20px);
+  object-fit: cover;
+  filter: blur(22px) brightness(0.92);
+  opacity: 0.38;
+  pointer-events: none;
+  z-index: 0;
+  transition: none;
+}
+
+/* Main image – contain, full visibility */
+.product-img-main {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
+  padding: 8px;
+  box-sizing: border-box;
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.product-card:hover .product-img-box img {
-  transform: scale(1.05);
+.product-card:hover .product-img-main {
+  transform: scale(1.04);
 }
 
 .card-badge-top {
