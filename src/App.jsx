@@ -413,7 +413,7 @@ export default function App() {
 
   // Produsul selectat pentru pagina detaliată
   const activeProduct = selectedProductId 
-    ? products.find(p => p.id === selectedProductId)
+    ? products.find(p => String(p.id) === String(selectedProductId))
     : null;
 
   return (

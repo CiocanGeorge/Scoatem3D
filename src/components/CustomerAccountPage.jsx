@@ -103,6 +103,60 @@ export default function CustomerAccountPage({
     }
   }, [user, loadOrders]);
 
+  // Caută produsul corespunzător în lista generală din magazin (după ID, nume exact sau parțial)
+  const getProductForItem = useCallback((item) => {
+    if (!item) return null;
+    if (item.product_id) {
+      const byId = (allProducts || []).find(p => String(p.id) === String(item.product_id));
+      if (byId) return byId;
+    }
+    if (item.product_name) {
+      const cleanItemName = item.product_name.trim().toLowerCase();
+      const byExactName = (allProducts || []).find(p => p.name && p.name.trim().toLowerCase() === cleanItemName);
+      if (byExactName) return byExactName;
+
+      const byPartial = (allProducts || []).find(p => 
+        p.name && (
+          cleanItemName.includes(p.name.trim().toLowerCase()) || 
+          p.name.trim().toLowerCase().includes(cleanItemName)
+        )
+      );
+      if (byPartial) return byPartial;
+    }
+    return null;
+  }, [allProducts]);
+
+  // Extrage orice fotografie încărcată de client în personalizare (dacă există)
+  const getItemCustomPhoto = (item) => {
+    if (!item?.customization || typeof item.customization !== 'object') return null;
+    for (const [key, val] of Object.entries(item.customization)) {
+      if (!key.endsWith('_filename') && typeof val === 'string' && (val.startsWith('http') || val.startsWith('data:image'))) {
+        return val;
+      }
+    }
+    return null;
+  };
+
+  // Determină imaginea optimă: întâi poza produsului din catalog, fallback custom/default
+  const getItemImage = (item) => {
+    // 1. Imaginea reală a produsului din magazin
+    const matched = getProductForItem(item);
+    if (matched?.image_url) return matched.image_url;
+
+    // 2. Direct din relația de bază de date (dacă există)
+    if (item.product?.image_url) return item.product.image_url;
+
+    // 3. Proprietate image_url directă pe articol
+    if (item.image_url) return item.image_url;
+
+    // 4. Fotografia atașată de client (dacă nu avem poza produsului)
+    const customPhoto = getItemCustomPhoto(item);
+    if (customPhoto) return customPhoto;
+
+    // 5. Fallback generic
+    return '/images/products/lampa-litofanie.jpg';
+  };
+
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setProfileSaving(true);
@@ -367,44 +421,101 @@ export default function CustomerAccountPage({
 
                         {/* Articole din Comandă */}
                         <div className="order-items-wrapper">
-                          {(order.items || []).map((item, idx) => (
-                            <div key={idx} className="order-item-detail-row">
-                              <div className="order-item-img-box">
-                                <img 
-                                  src={item.customization?.photo || '/images/products/lampa-litofanie.jpg'} 
-                                  alt={item.product_name}
-                                  onClick={() => {
-                                    if (item.customization?.photo && onOpenImageViewer) {
-                                      onOpenImageViewer(item.customization.photo, item.product_name);
-                                    }
-                                  }}
-                                />
-                              </div>
+                          {(order.items || []).map((item, idx) => {
+                            const matchedProduct = getProductForItem(item);
+                            const targetProductId = matchedProduct?.id || item.product_id;
+                            const itemImage = getItemImage(item);
+                            const customPhoto = getItemCustomPhoto(item);
 
-                              <div style={{ flexGrow: 1, minWidth: 0 }}>
-                                <h4 className="order-item-name">{item.product_name}</h4>
-                                <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                                  Cantitate: <strong>{item.quantity || 1} buc</strong> • Preț: <strong>{Number(item.price).toFixed(2).replace('.', ',')} Lei</strong>
+                            const handleNavigateToProduct = () => {
+                              if (targetProductId) {
+                                if (onSelectProduct) {
+                                  onSelectProduct(targetProductId);
+                                } else {
+                                  window.location.hash = `#/produs/${targetProductId}`;
+                                }
+                              } else if (customPhoto && onOpenImageViewer) {
+                                onOpenImageViewer(customPhoto, item.product_name);
+                              }
+                            };
+
+                            return (
+                              <div key={idx} className="order-item-detail-row">
+                                <div 
+                                  className="order-item-img-box"
+                                  onClick={handleNavigateToProduct}
+                                  style={{ 
+                                    cursor: targetProductId || (customPhoto && onOpenImageViewer) ? 'pointer' : 'default' 
+                                  }}
+                                  title={targetProductId ? 'Apasă pentru a merge la pagina produsului' : item.product_name}
+                                >
+                                  <img 
+                                    src={itemImage} 
+                                    alt={item.product_name}
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src = '/images/products/lampa-litofanie.jpg';
+                                    }}
+                                  />
                                 </div>
 
-                                {/* Personalizările produsului */}
-                                {item.customization && Object.keys(item.customization).length > 0 && (
-                                  <div className="order-customizations-box">
-                                    {Object.entries(item.customization)
-                                      .filter(([k]) => !k.endsWith('_filename'))
-                                      .map(([k, val], i) => (
-                                        <div key={i} className="custom-entry-pill">
-                                          <span className="entry-key">{k}:</span>
-                                          <strong className="entry-val">
-                                            {typeof val === 'string' && val.startsWith('http') ? 'Fotografie atașată' : val}
-                                          </strong>
-                                        </div>
-                                      ))}
+                                <div style={{ flexGrow: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                                    <h4 
+                                      className="order-item-name"
+                                      style={{ 
+                                        cursor: targetProductId ? 'pointer' : 'default',
+                                        color: targetProductId ? 'var(--primary)' : 'var(--text-main)',
+                                        margin: 0,
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                      }}
+                                      onClick={handleNavigateToProduct}
+                                      title={targetProductId ? 'Click pentru a merge la pagina produsului' : ''}
+                                    >
+                                      <span>{item.product_name}</span>
+                                      {targetProductId && <span style={{ fontSize: '0.85rem' }}>↗</span>}
+                                    </h4>
                                   </div>
-                                )}
+                                  <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                                    Cantitate: <strong>{item.quantity || 1} buc</strong> • Preț: <strong>{Number(item.price).toFixed(2).replace('.', ',')} Lei</strong>
+                                  </div>
+
+                                  {/* Personalizările produsului */}
+                                  {item.customization && Object.keys(item.customization).length > 0 && (
+                                    <div className="order-customizations-box">
+                                      {Object.entries(item.customization)
+                                        .filter(([k]) => !k.endsWith('_filename'))
+                                        .map(([k, val], i) => {
+                                          const isAttachedImg = typeof val === 'string' && (val.startsWith('http') || val.startsWith('data:image'));
+                                          return (
+                                            <div key={i} className="custom-entry-pill">
+                                              <span className="entry-key">{k}:</span>
+                                              <strong className="entry-val">
+                                                {isAttachedImg ? (
+                                                  <span 
+                                                    style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      if (onOpenImageViewer) onOpenImageViewer(val, `${item.product_name} - ${k}`);
+                                                    }}
+                                                    title="Click pentru a mări fotografia atașată"
+                                                  >
+                                                    📷 Vezi poza atașată ↗
+                                                  </span>
+                                                ) : val}
+                                              </strong>
+                                            </div>
+                                          );
+                                        })}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
 
                         {/* Subsol Comandă */}

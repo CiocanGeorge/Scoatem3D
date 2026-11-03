@@ -8,6 +8,7 @@ import { updateOrderStatus } from '../../lib/supabaseClient';
 
 export default function AdminOrdersTab({ 
   orders = [], 
+  products = [],
   onRefresh, 
   onOpenImageViewer 
 }) {
@@ -16,6 +17,18 @@ export default function AdminOrdersTab({
   const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [copiedTextKey, setCopiedTextKey] = useState(null);
   const [isZipping, setIsZipping] = useState({});
+
+  const getProductTargetId = (item) => {
+    if (item.product_id) return item.product_id;
+    const found = (products || []).find(p => 
+      p.name && item.product_name && (
+        p.name.trim().toLowerCase() === item.product_name.trim().toLowerCase() ||
+        p.name.toLowerCase().includes(item.product_name.toLowerCase()) ||
+        item.product_name.toLowerCase().includes(p.name.toLowerCase())
+      )
+    );
+    return found?.id || null;
+  };
 
   // Filtrare comenzi
   const filteredOrders = orders.filter(order => {
@@ -324,10 +337,37 @@ export default function AdminOrdersTab({
                             }}
                           >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <strong style={{ fontSize: '1rem', color: 'var(--text-main)' }}>
-                                  {item.product_name}
-                                </strong>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                {(() => {
+                                  const targetId = getProductTargetId(item);
+                                  if (targetId) {
+                                    return (
+                                      <a 
+                                        href={`/#/produs/${targetId}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ 
+                                          fontSize: '1rem', 
+                                          fontWeight: '700', 
+                                          color: 'var(--primary)',
+                                          textDecoration: 'none',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '6px'
+                                        }}
+                                        title="Click pentru a deschide pagina produsului în magazin"
+                                      >
+                                        <span>{item.product_name}</span>
+                                        <ExternalLink size={14} />
+                                      </a>
+                                    );
+                                  }
+                                  return (
+                                    <strong style={{ fontSize: '1rem', color: 'var(--text-main)' }}>
+                                      {item.product_name}
+                                    </strong>
+                                  );
+                                })()}
                                 <span className="badge badge-sage">
                                   Cantitate: {item.quantity || 1} buc
                                 </span>

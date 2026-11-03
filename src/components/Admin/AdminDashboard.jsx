@@ -353,6 +353,7 @@ export default function AdminDashboard({ onOpenImageViewer, onAdminAuthChange })
         {activeTab === 'orders' && (
           <AdminOrdersTab 
             orders={orders} 
+            products={products}
             onRefresh={loadAdminData} 
             onOpenImageViewer={onOpenImageViewer} 
           />
@@ -361,6 +362,7 @@ export default function AdminDashboard({ onOpenImageViewer, onAdminAuthChange })
         {activeTab === 'print_queue' && (
           <AdminPrintQueueTab 
             orders={orders} 
+            products={products}
             onRefresh={loadAdminData} 
             onOpenImageViewer={onOpenImageViewer} 
           />
