@@ -172,7 +172,10 @@ export default function AdminProductsTab({
       gallery: Array.isArray(prod.gallery) ? prod.gallery : [],
       badge: prod.badge || '',
       active: prod.active !== undefined ? prod.active : true,
-      fields: JSON.parse(JSON.stringify(prod.fields || []))
+      fields: (prod.fields || []).map(f => ({
+        ...f,
+        raw_options: Array.isArray(f.options) ? f.options.join(', ') : ''
+      }))
     });
     setGalleryUrlInput('');
     setDescTab('write');
@@ -307,7 +310,8 @@ export default function AdminProductsTab({
       type: 'text',
       required: true,
       max_length: 30,
-      options: ['Opțiunea 1', 'Opțiunea 2']
+      options: ['Opțiunea 1', 'Opțiunea 2'],
+      raw_options: 'Opțiunea 1, Opțiunea 2'
     };
 
     setProductForm(prev => ({
@@ -316,17 +320,21 @@ export default function AdminProductsTab({
     }));
   };
 
-  const handleUpdateField = (index, keyName, value) => {
+  const handleUpdateField = (index, keyNameOrObj, value) => {
     setProductForm(prev => {
       const updatedFields = [...prev.fields];
+      const updates = typeof keyNameOrObj === 'object' && keyNameOrObj !== null
+        ? keyNameOrObj
+        : { [keyNameOrObj]: value };
+
       updatedFields[index] = {
         ...updatedFields[index],
-        [keyName]: value
+        ...updates
       };
 
       // Dacă s-a schimbat eticheta și cheia era generică, sugerăm o cheie curățată
-      if (keyName === 'label' && (!updatedFields[index].key || updatedFields[index].key.startsWith('camp_'))) {
-        const autoKey = value
+      if (updates.label && (!updatedFields[index].key || updatedFields[index].key.startsWith('camp_'))) {
+        const autoKey = updates.label
           .toLowerCase()
           .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
           .replace(/[^a-z0-9]/g, '_')
@@ -399,11 +407,25 @@ export default function AdminProductsTab({
         finalGallery.unshift(finalImageUrl);
       }
 
+      // Curățăm câmpurile de personalizare (eliminăm raw_options temporar și asigurăm options curate)
+      const cleanFields = (productForm.fields || []).map(f => {
+        const { raw_options, ...rest } = f;
+        if (rest.type === 'select') {
+          if (raw_options !== undefined) {
+            rest.options = raw_options.split(',').map(s => s.trim()).filter(Boolean);
+          } else if (!Array.isArray(rest.options)) {
+            rest.options = [];
+          }
+        }
+        return rest;
+      });
+
       // 4. Salvăm în Supabase
       const result = await saveProduct({
         ...productForm,
         image_url: finalImageUrl,
-        gallery: finalGallery
+        gallery: finalGallery,
+        fields: cleanFields
       });
 
       if (result?._needsGalleryColumn) {
@@ -1147,7 +1169,21 @@ export default function AdminProductsTab({
                             <select
                               className="custom-input"
                               value={field.type}
-                              onChange={(e) => handleUpdateField(idx, 'type', e.target.value)}
+                              onChange={(e) => {
+                                const newType = e.target.value;
+                                if (newType === 'select') {
+                                  const defaultOpts = (Array.isArray(field.options) && field.options.length > 0)
+                                    ? field.options
+                                    : ['Opțiunea 1', 'Opțiunea 2'];
+                                  handleUpdateField(idx, {
+                                    type: newType,
+                                    options: defaultOpts,
+                                    raw_options: defaultOpts.join(', ')
+                                  });
+                                } else {
+                                  handleUpdateField(idx, 'type', newType);
+                                }
+                              }}
                             >
                               <option value="text">Text (input tastatură)</option>
                               <option value="image">Imagine (încărcare foto client)</option>
@@ -1194,12 +1230,27 @@ export default function AdminProductsTab({
                               type="text"
                               className="custom-input"
                               placeholder="Opțiune 1, Opțiune 2, Opțiune 3"
-                              value={Array.isArray(field.options) ? field.options.join(', ') : ''}
+                              value={field.raw_options !== undefined ? field.raw_options : (Array.isArray(field.options) ? field.options.join(', ') : '')}
                               onChange={(e) => {
+                                const raw = e.target.value;
+                                const opts = raw.split(',').map(s => s.trim()).filter(Boolean);
+                                handleUpdateField(idx, {
+                                  raw_options: raw,
+                                  options: opts
+                                });
+                              }}
+                              onBlur={(e) => {
+                                // La ieșirea din câmp, formatează frumos opțiunile
                                 const opts = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                                handleUpdateField(idx, 'options', opts);
+                                handleUpdateField(idx, {
+                                  raw_options: opts.join(', '),
+                                  options: opts
+                                });
                               }}
                             />
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                              Scrie opțiunile separate prin virgulă (ex: Roșu, Albastru, Negru).
+                            </div>
                           </div>
                         )}
                       </div>
