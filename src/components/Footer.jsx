@@ -5,30 +5,30 @@ export default function Footer({ onNavigateShop, onNavigateLegal }) {
   const whatsappUrl = "https://wa.me/40763409836?text=Bun%C4%83%20ziua!%20V%C4%83%20contactez%20%C3%AEn%20leg%C4%83tur%C4%83%20cu%20produsele%20Scoatem3D.";
 
   const legalLinks = [
-    { 
-      label: 'Termeni și Condiții', 
-      href: '#/termeni-si-conditii', 
-      icon: <FileText size={15} style={{ color: 'var(--primary)' }} /> 
+    {
+      label: 'Termeni și Condiții',
+      href: '#/termeni-si-conditii',
+      icon: <FileText size={15} style={{ color: 'var(--primary)' }} />
     },
-    { 
-      label: 'Politică de Confidențialitate', 
-      href: '#/politica-de-confidentialitate', 
-      icon: <Shield size={15} style={{ color: 'var(--primary)' }} /> 
+    {
+      label: 'Politică de Confidențialitate',
+      href: '#/politica-de-confidentialitate',
+      icon: <Shield size={15} style={{ color: 'var(--primary)' }} />
     },
-    { 
-      label: 'Politică de Cookie-uri', 
-      href: '#/politica-de-cookie-uri', 
-      icon: <Cookie size={15} style={{ color: 'var(--primary)' }} /> 
+    {
+      label: 'Politică de Cookie-uri',
+      href: '#/politica-de-cookie-uri',
+      icon: <Cookie size={15} style={{ color: 'var(--primary)' }} />
     },
-    { 
-      label: 'Soluționarea Litigiilor — ANPC', 
-      href: 'https://anpc.ro/ce-este-sal/', 
+    {
+      label: 'Soluționarea Litigiilor — ANPC',
+      href: 'https://anpc.ro/ce-este-sal/',
       external: true,
       icon: <Scale size={15} style={{ color: '#D97706' }} />
     },
-    { 
-      label: 'Platforma SOL (UE)', 
-      href: 'https://ec.europa.eu/consumers/odr', 
+    {
+      label: 'Platforma SOL (UE)',
+      href: 'https://ec.europa.eu/consumers/odr',
       external: true,
       icon: <ExternalLink size={15} style={{ color: '#2563EB' }} />
     },
@@ -47,14 +47,14 @@ export default function Footer({ onNavigateShop, onNavigateLegal }) {
   return (
     <footer style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border-light)', padding: '48px 0 32px' }}>
       <div className="container">
-        
+
         {/* Secțiunea Principală: 3 Coloane Echilibrate */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-          gap: '40px', 
-          marginBottom: '32px', 
-          alignItems: 'start' 
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '40px',
+          marginBottom: '32px',
+          alignItems: 'start'
         }}>
 
           {/* Coloana 1: Brand & Prezentare */}
@@ -73,7 +73,7 @@ export default function Footer({ onNavigateShop, onNavigateLegal }) {
               </div>
             </div>
             <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: '1.65' }}>
-              Creăm cadouri unice cu suflet — de la decorațiuni imprimate 3D cu fotografii litofanie la lumânări parfumate handmade din ceară naturală de soia. Fiecare piesă este lucrată cu pasiune în atelierul nostru.
+              Creăm cadouri unice cu suflet — de la decorațiuni imprimate 3D cu fotografii luminoase la lumânări parfumate handmade din ceară naturală de soia. Fiecare piesă este lucrată cu pasiune în atelierul nostru.
             </p>
           </div>
 
@@ -139,19 +139,19 @@ export default function Footer({ onNavigateShop, onNavigateLegal }) {
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
-                    background: '#25D366', 
-                    color: 'white', 
-                    padding: '8px 18px', 
-                    borderRadius: 'var(--radius-full)', 
-                    fontSize: '0.82rem', 
-                    fontWeight: '700', 
-                    textDecoration: 'none', 
-                    boxShadow: '0 2px 8px rgba(37, 211, 102, 0.25)', 
-                    transition: 'all 0.2s ease' 
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: '#25D366',
+                    color: 'white',
+                    padding: '8px 18px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.82rem',
+                    fontWeight: '700',
+                    textDecoration: 'none',
+                    boxShadow: '0 2px 8px rgba(37, 211, 102, 0.25)',
+                    transition: 'all 0.2s ease'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.opacity = '0.92';
@@ -346,16 +346,16 @@ export default function Footer({ onNavigateShop, onNavigateLegal }) {
         </div>
 
         {/* Bara de Jos a Footer-ului (Copyright & Credite) */}
-        <div style={{ 
-          paddingTop: '20px', 
-          borderTop: '1px solid var(--border-light)', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          flexWrap: 'wrap', 
-          gap: '12px', 
+        <div style={{
+          paddingTop: '20px',
+          borderTop: '1px solid var(--border-light)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
           alignItems: 'center',
-          fontSize: '0.8rem', 
-          color: 'var(--text-muted)' 
+          fontSize: '0.8rem',
+          color: 'var(--text-muted)'
         }}>
           <div>
             © {new Date().getFullYear()} Scoatem3D România. Toate drepturile rezervate.

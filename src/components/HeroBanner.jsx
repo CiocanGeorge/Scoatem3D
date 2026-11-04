@@ -1,17 +1,17 @@
 import React from 'react';
-import { 
-  Sparkles, 
-  HeartHandshake, 
-  Truck, 
-  Layers, 
-  Search, 
-  X, 
-  SunMedium, 
-  Key, 
-  Gift, 
-  Cake, 
-  Boxes, 
-  Tag 
+import {
+  Sparkles,
+  HeartHandshake,
+  Truck,
+  Layers,
+  Search,
+  X,
+  SunMedium,
+  Key,
+  Gift,
+  Cake,
+  Boxes,
+  Tag
 } from 'lucide-react';
 
 const SEARCH_SUGGESTIONS = [
@@ -34,9 +34,9 @@ const getCategoryIcon = (categoryName) => {
   return Tag;
 };
 
-export default function HeroBanner({ 
-  categories = [], 
-  selectedCategory = 'Toate', 
+export default function HeroBanner({
+  categories = [],
+  selectedCategory = 'Toate',
   onSelectCategory,
   searchQuery = '',
   onSearchChange,
@@ -59,7 +59,7 @@ export default function HeroBanner({
 
         {/* Subtitle */}
         <p className="hero-subtitle">
-          De la lămpi litofanie și decorațiuni 3D personalizate, până la lumânări parfumate artizanale. Configurează cadoul perfect în câteva secunde.
+          De la lămpi luminoase și decorațiuni 3D personalizate, până la lumânări parfumate artizanale. Configurează cadoul perfect în câteva secunde.
         </p>
 
         {/* Trust Badges */}
@@ -106,20 +106,6 @@ export default function HeroBanner({
               </div>
             </div>
 
-            {/* Sugestii Rapide de Căutare */}
-            <div className="search-suggestions-strip">
-              <span className="search-suggest-label">Populare:</span>
-              {SEARCH_SUGGESTIONS.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  className={`search-suggest-chip ${searchQuery.toLowerCase() === tag.toLowerCase() ? 'active' : ''}`}
-                  onClick={() => onSearchChange(tag)}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
           </div>
         )}
 
