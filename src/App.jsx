@@ -123,6 +123,50 @@ export default function App() {
 
   // ---- TRACKING VIZITATORI ----
   useEffect(() => {
+    // Verificăm dacă link-ul conține o variabilă pentru ignorarea vizitei proprietarului/adminului
+    // Suportă: ?ignore=true, ?admin=true, ?notrack=true, ?owner=true, ?proprietar=true
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = window.location.hash.includes('?') 
+      ? new URLSearchParams(window.location.hash.split('?')[1]) 
+      : null;
+
+    const checkParam = (name) => {
+      const val = urlParams.get(name) || hashParams?.get(name);
+      return val === 'true' || val === '1';
+    };
+
+    const shouldIgnoreFromUrl = 
+      checkParam('ignore') || 
+      checkParam('admin') || 
+      checkParam('notrack') || 
+      checkParam('owner') || 
+      checkParam('proprietar');
+
+    const shouldReenableTracking = 
+      urlParams.get('track') === 'true' || 
+      urlParams.get('ignore') === 'false' || 
+      hashParams?.get('track') === 'true' || 
+      hashParams?.get('ignore') === 'false';
+
+    if (shouldReenableTracking) {
+      try {
+        localStorage.removeItem('scoatem3d_ignore_visit');
+        console.log('ℹ️ Tracking vizitatori reactivat pentru acest dispozitiv.');
+      } catch (e) {}
+    } else if (shouldIgnoreFromUrl) {
+      try {
+        // Salvăm permanent în browser ca să nu mai fie nevoie să pui parametrul la fiecare vizită
+        localStorage.setItem('scoatem3d_ignore_visit', 'true');
+        console.log('🔒 Dispozitiv marcat ca proprietar/admin. Vizitele nu vor mai fi contorizate.');
+      } catch (e) {}
+    }
+
+    // Verificăm dacă dispozitivul este exclus de la tracking
+    let isIgnored = false;
+    try {
+      isIgnored = localStorage.getItem('scoatem3d_ignore_visit') === 'true';
+    } catch (e) {}
+
     // Generăm sau recuperăm un session_id unic per tab
     let sessionId = sessionStorage.getItem('_atelier3d_sid');
     if (!sessionId) {
@@ -131,19 +175,30 @@ export default function App() {
     }
 
     // Citim ?platform= din URL
-    const urlParams = new URLSearchParams(window.location.search);
     const platform = urlParams.get('platform') || null;
     const referrer = document.referrer || null;
 
-    // Ștergem ?platform= din URL (fără reload)
-    if (platform) {
-      urlParams.delete('platform');
+    // Curățăm parametrii speciali din URL fără reload, pentru un aspect curat
+    let urlChanged = false;
+    ['platform', 'ignore', 'admin', 'notrack', 'owner', 'proprietar', 'track'].forEach(key => {
+      if (urlParams.has(key)) {
+        urlParams.delete(key);
+        urlChanged = true;
+      }
+    });
+
+    if (urlChanged) {
       const newSearch = urlParams.toString();
       const cleanUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
       window.history.replaceState(null, '', cleanUrl);
     }
 
-    // Salvăm vizita în Supabase (nu blocăm UI)
+    // Dacă utilizatorul este marcat ca proprietar/admin, NU salvăm vizita
+    if (isIgnored || currentUser?.role === 'admin' || currentUser?.isAdmin) {
+      return;
+    }
+
+    // Salvăm vizita reală a clientului în Supabase (nu blocăm UI)
     trackPageVisit({
       platform,
       referrer,
@@ -151,7 +206,7 @@ export default function App() {
       session_id: sessionId
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentUser]);
 
 
 

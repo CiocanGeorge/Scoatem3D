@@ -687,6 +687,9 @@ export async function toggleCustomerWishlist(productId) {
 export async function trackPageVisit({ platform = null, referrer = null, page = '/', session_id = null } = {}) {
   if (!isSupabaseConfigured()) return;
   try {
+    if (typeof window !== 'undefined' && localStorage.getItem('scoatem3d_ignore_visit') === 'true') {
+      return;
+    }
     await supabase.from('page_visits').insert({
       platform: platform || null,
       referrer: referrer || null,
